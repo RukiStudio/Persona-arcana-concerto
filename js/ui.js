@@ -4,8 +4,8 @@
 import {
   ELEMENT, ELEMENT_INFO, POWER_INFO, RANK_LABEL, CARD_TYPE, AFFINITY,
   ENVIRONMENT_INFO,
-} from "./data.js?v=11";
-import { getActiveSkill, calcBaseDamage } from "./core.js?v=10";
+} from "./data.js?v=12";
+import { getActiveSkill, calcBaseDamage } from "./core.js?v=12";
 
 export class UI {
   constructor(game, onReturnHub) {
@@ -27,8 +27,53 @@ export class UI {
       case "enemyAttack": this.onEnemyAttack(data); break;
       case "enemyAct": break;
       case "waveStart": this.onWaveStart(data); break;
+      case "tutorial": this.onTutorial(data); break;
     }
     this.render();
+  }
+
+  // 教程引导：根据 step 显示气泡提示
+  onTutorial(data) {
+    const tips = {
+      1: { title: "① 抽 取 卡 牌", body: "点击右下「DRAW」按钮花费 ¥ 抽牌。\n每回合自动发牌，但额外抽牌能加快集火。", target: "#btn-draw" },
+      2: { title: "② 出 牌 / 构 筑", body: "双击手牌可立即使用人格面具技能；\n或将人格面具卡拖入下方 5 个构筑槽合成更强技能。", target: "#compose-slots" },
+      3: { title: "③ 确 认 构 筑", body: "放入 2~5 张人格面具卡后，点击「CONFIRM」释放合成技能攻击敌人。\n注意敌人弱点（▼）可造成双倍伤害。", target: "#btn-confirm" },
+      4: { title: "④ 结 束 回 合", body: "行动完毕后点击「END TURN」结束本回合，\n敌人将发动攻击。循环直至击败所有敌人。", target: "#btn-end" },
+    };
+    const tip = tips[data.step];
+    if (!tip) { this.hideTutorialTip(); return; }
+    this.showTutorialTip(tip);
+  }
+
+  showTutorialTip(tip) {
+    let el = document.getElementById("tutorial-tip");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "tutorial-tip";
+      el.className = "tutorial-tip";
+      document.body.appendChild(el);
+    }
+    el.innerHTML = `
+      <div class="tutorial-tip-head">
+        <span class="tutorial-tip-title">${tip.title}</span>
+        <button class="tutorial-tip-close" title="关闭提示">×</button>
+      </div>
+      <div class="tutorial-tip-body">${tip.body.replace(/\n/g, "<br>")}</div>
+    `;
+    el.querySelector(".tutorial-tip-close").onclick = () => this.hideTutorialTip();
+    el.classList.add("show");
+    // 高亮目标元素
+    document.querySelectorAll(".tutorial-highlight").forEach(n => n.classList.remove("tutorial-highlight"));
+    if (tip.target) {
+      const tgt = document.querySelector(tip.target);
+      if (tgt) tgt.classList.add("tutorial-highlight");
+    }
+  }
+
+  hideTutorialTip() {
+    const el = document.getElementById("tutorial-tip");
+    if (el) el.classList.remove("show");
+    document.querySelectorAll(".tutorial-highlight").forEach(n => n.classList.remove("tutorial-highlight"));
   }
 
   // 敌人攻击动画：突进 + 属性色屏闪
@@ -500,6 +545,7 @@ export class UI {
     document.getElementById("overlay-desc").textContent = victory
       ? "所有暗影已被驱散，返回天鹅绒房间查看养成。" : "你倒下了……";
     document.getElementById("overlay-btn").textContent = victory ? "返回房间" : "重试";
+    this.hideTutorialTip();
   }
 
   onOverlayContinue() {

@@ -6,8 +6,8 @@ import {
   CARD_TYPE, RANK, RANK_LABEL, POWER, RANGE, ELEMENT, AFFINITY,
   STARTING_PERSONAS,
   nextId,
-} from "./data.js?v=11";
-import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=10";
+} from "./data.js?v=12";
+import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=12";
 
 // 卡牌工厂
 function makePersonaCard(key) {
@@ -147,6 +147,11 @@ export class Game {
     this.player.drawCost *= 2;
     this.drawCard();
     this.log(`花费 ¥${cost} 抽取一张牌`, "gold");
+    // 教程：抽牌推进 step 1→2
+    if (this.isTutorial && this.tutorialStep === 1) {
+      this.tutorialStep = 2;
+      this.emit("tutorial", { step: 2 });
+    }
     this.emit("state");
     return true;
   }
@@ -175,6 +180,9 @@ export class Game {
   startStage(idx) {
     this.stageIndex = idx;
     const stage = STAGES[idx];
+    // 教程模式：标记 + 引导步骤计数（0=未触发,1=抽牌,2=出牌,3=构筑,4=完成）
+    this.isTutorial = !!stage.isTutorial;
+    this.tutorialStep = 0;
     // 多波次 + 环境减益
     this.waves = stage.waves || [stage.enemies];
     this.waveIndex = 0;
@@ -206,6 +214,10 @@ export class Game {
     const envNames = this.environment.length ? ` | 环境：${this.environment.map(e => e).join(",")}` : "";
     this.log(`【${stage.name}】战斗开始！阵营：${this.arcana.name}（Lv.${this.arcanaLv}）${envNames}`, "info");
     this.emit("stageStart", stage);
+    if (this.isTutorial) {
+      this.tutorialStep = 1;
+      this.emit("tutorial", { step: 1 });
+    }
     this.startTurn();
   }
 
@@ -414,6 +426,11 @@ export class Game {
 
     this.hand.splice(idx, 1);
     this.composeSlots.push(card);
+    // 教程：首次拖入构筑推进 step 2→3
+    if (this.isTutorial && this.tutorialStep === 2) {
+      this.tutorialStep = 3;
+      this.emit("tutorial", { step: 3 });
+    }
     this.emit("state");
     return true;
   }
@@ -509,6 +526,11 @@ export class Game {
 
     this.composeSlots = []; // 消耗卡牌
     this.executeSkill(skill, null);
+    // 教程：首次构筑完成推进 step 3→4
+    if (this.isTutorial && this.tutorialStep === 3) {
+      this.tutorialStep = 4;
+      this.emit("tutorial", { step: 4 });
+    }
     this.emit("state");
     this.checkBattleEnd();
     return true;

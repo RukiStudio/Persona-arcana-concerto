@@ -782,6 +782,96 @@ html, body {
 }
 
 /* ============================================================
+   新手教程引导
+   ============================================================ */
+/* 教程关卡卡片标识 */
+.stage-card.tutorial {
+  border-color: var(--c-gold, #d4af37);
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.18), rgba(20, 10, 60, 0.95));
+}
+.stage-card.tutorial .stage-id {
+  color: var(--c-gold, #d4af37);
+  letter-spacing: 2px;
+}
+.stage-tut-tag {
+  color: var(--c-gold, #d4af37);
+  border: 1px solid var(--c-gold, #d4af37);
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-size: 10px;
+  margin-left: 4px;
+}
+
+/* 教程气泡提示 */
+.tutorial-tip {
+  position: fixed;
+  top: 24%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  background: linear-gradient(180deg, #1f1242 0%, #0a061f 100%);
+  border: 2px solid var(--c-gold, #d4af37);
+  border-radius: 10px;
+  padding: 16px 20px;
+  width: min(440px, 90vw);
+  box-shadow: 0 0 50px rgba(212, 175, 55, 0.4), 0 8px 32px rgba(0, 0, 0, 0.6);
+  z-index: 9000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
+  font-family: var(--font-text, sans-serif);
+}
+.tutorial-tip.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+.tutorial-tip-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.tutorial-tip-title {
+  font-family: var(--font-title);
+  font-size: 16px;
+  letter-spacing: 2px;
+  color: var(--c-gold, #d4af37);
+  text-shadow: 0 0 8px rgba(212, 175, 55, 0.4);
+}
+.tutorial-tip-close {
+  background: transparent;
+  border: 1px solid rgba(244, 67, 54, 0.4);
+  color: #ff8a80;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.tutorial-tip-close:hover {
+  background: rgba(244, 67, 54, 0.25);
+}
+.tutorial-tip-body {
+  color: #e8d5ff;
+  font-size: 13px;
+  line-height: 1.7;
+  letter-spacing: 0.5px;
+}
+
+/* 高亮目标元素脉冲边框 */
+.tutorial-highlight {
+  position: relative;
+  animation: tutorial-pulse 1.4s ease-in-out infinite;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.6) !important;
+  border-radius: 6px;
+  z-index: 9;
+}
+@keyframes tutorial-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.6); }
+  50% { box-shadow: 0 0 0 6px rgba(212, 175, 55, 0.9); }
+}
+
+/* ============================================================
    玩家档案选择界面
    ============================================================ */
 .profile-screen {

@@ -710,6 +710,12 @@ export const MINOR_CARDS = {
 // ============================================================
 // 难度强化：HP ×1.3、attack ×1.25；shadow_priest/stone_golem/reaper 加恢复技能
 export const ENEMIES = {
+  tutorial_shadow: {
+    name: "虚弱暗影", icon: "👤", level: 1, hp: 60,
+    affinities: { PHYSICAL: AFFINITY.NORMAL, FIRE: AFFINITY.WEAK, ICE: AFFINITY.NORMAL, WIND: AFFINITY.NORMAL, ELEC: AFFINITY.NORMAL, ALMIGHTY: AFFINITY.NORMAL },
+    skills: [{ name: "虚弱攻击", element: ELEMENT.PHYSICAL, power: POWER.SM, range: RANGE.SINGLE }],
+    attack: 8,
+  },
   cowardly_maya: {
     name: "怯懦的玛雅", icon: "🗿", level: 3, hp: 234,
     affinities: { PHYSICAL: AFFINITY.NORMAL, FIRE: AFFINITY.NORMAL, ICE: AFFINITY.NORMAL, WIND: AFFINITY.NORMAL, ELEC: AFFINITY.WEAK, ALMIGHTY: AFFINITY.NORMAL },
@@ -793,6 +799,14 @@ export const ENEMIES = {
 // ============================================================
 // 多波次关卡 + 局内减益环境（environment 数组可叠加）
 export const STAGES = [
+  {
+    id: 0, name: "新手教程：初次觉醒",
+    enemies: ["tutorial_shadow"],
+    waves: [["tutorial_shadow"]],
+    environment: [],
+    reward: { exp: 30, money: 150 }, recommendedLevel: 1,
+    isTutorial: true,
+  },
   {
     id: 1, name: "第一章：暗影领域",
     enemies: ["cowardly_maya", "crying_table"],

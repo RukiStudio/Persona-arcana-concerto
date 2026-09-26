@@ -1,10 +1,10 @@
 ﻿// ============================================================
 // 游戏入口：玩家档案选择、初始化、Hub ↔ 战斗切换
 // ============================================================
-import { Game } from "./game.js?v=10";
-import { UI } from "./ui.js?v=10";
-import { MetaState } from "./meta.js?v=11";
-import { Hub } from "./hub.js?v=10";
+import { Game } from "./game.js?v=12";
+import { UI } from "./ui.js?v=12";
+import { MetaState } from "./meta.js?v=12";
+import { Hub } from "./hub.js?v=12";
 
 // 等比缩放适配
 function fitScreen() {

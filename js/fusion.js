@@ -3,7 +3,7 @@
 // ============================================================
 import {
   PERSONAS, ARCANA, getFusionArcana, RANK, RANK_LABEL, SKILLS,
-} from "./data.js?v=11";
+} from "./data.js?v=12";
 
 /**
  * 获取合体结果的人格面具
