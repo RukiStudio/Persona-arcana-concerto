@@ -1,10 +1,10 @@
 ﻿// ============================================================
 // 游戏入口：玩家档案选择、初始化、Hub ↔ 战斗切换
 // ============================================================
-import { Game } from "./game.js?v=14";
-import { UI } from "./ui.js?v=14";
-import { MetaState } from "./meta.js?v=14";
-import { Hub } from "./hub.js?v=14";
+import { Game } from "./game.js?v=15";
+import { UI } from "./ui.js?v=15";
+import { MetaState } from "./meta.js?v=15";
+import { Hub } from "./hub.js?v=15";
 
 // 等比缩放适配
 function fitScreen() {
@@ -134,6 +134,7 @@ function showBattle(stageIndex) {
   game = new Game(meta);
   ui = new UI(game, showHub);
   window.__game = game;
+  window.__ui = ui;
   game.startStage(stageIndex);
 }
 

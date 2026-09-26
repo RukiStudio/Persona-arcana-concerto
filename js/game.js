@@ -6,8 +6,8 @@ import {
   CARD_TYPE, RANK, RANK_LABEL, POWER, RANGE, ELEMENT, AFFINITY,
   STARTING_PERSONAS,
   nextId,
-} from "./data.js?v=14";
-import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=14";
+} from "./data.js?v=15";
+import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=15";
 
 // 卡牌工厂
 function makePersonaCard(key) {
@@ -621,7 +621,7 @@ export class Game {
     if ((this.player.arcanaBonus === "FIRE_DMG" && effSkill.element === ELEMENT.FIRE) ||
         (this.player.arcanaBonus === "ELEC_DMG" && effSkill.element === ELEMENT.ELEC)) {
       if (this.arcanaLv >= 2) {
-        effSkill = { ...effSkill, power: Math.min(POWER.XH, effSkill.power + 1) };
+        effSkill = { ...effSkill, power: Math.min(POWER.UL, effSkill.power + 1) };
       }
       if (this.arcanaLv >= 3) {
         effSkill = { ...effSkill, range: RANGE.ALL };
@@ -875,7 +875,7 @@ export class Game {
       else if (lv === 2 && this.firstComposeThisTurn) bonus = true;
       else if (lv === 3) bonus = true; // 所有构筑+1阶
       if (bonus) {
-        eff.power = Math.min(eff.power + 1, POWER.XH);
+        eff.power = Math.min(eff.power + 1, POWER.UL);
         eff.foolBonus = true;
       }
     }

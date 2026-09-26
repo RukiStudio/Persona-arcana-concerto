@@ -872,8 +872,9 @@ html, body {
 }
 
 /* ============================================================
-   敌人击杀动画
+   敌人击杀动画（独立浮层播放，避免被 render 覆盖）
    ============================================================ */
+.enemy-dying-ghost.enemy-dying,
 .enemy-card.enemy-dying {
   animation: enemy-die 0.7s ease-out forwards;
   pointer-events: none;

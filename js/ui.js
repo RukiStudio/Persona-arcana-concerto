@@ -4,8 +4,8 @@
 import {
   ELEMENT, ELEMENT_INFO, POWER_INFO, RANK_LABEL, CARD_TYPE, AFFINITY,
   ENVIRONMENT_INFO,
-} from "./data.js?v=14";
-import { getActiveSkill, calcBaseDamage } from "./core.js?v=14";
+} from "./data.js?v=15";
+import { getActiveSkill, calcBaseDamage } from "./core.js?v=15";
 
 export class UI {
   constructor(game, onReturnHub) {
@@ -31,6 +31,31 @@ export class UI {
       case "enemyDeath": this.onEnemyDeath(data); break;
     }
     this.render();
+  }
+
+  // 敌人被击杀动画：克隆敌人卡片到独立浮层播放动画，避免被 render 覆盖
+  onEnemyDeath(data) {
+    const cardEl = document.querySelector(`.enemy-card[data-id="${data.enemy.id}"]`);
+    if (!cardEl) return;
+    // 取得敌人卡片在视口的位置
+    const rect = cardEl.getBoundingClientRect();
+    // 克隆到独立浮层（body 直接子元素），脱离 enemy-list 重建影响
+    const ghost = cardEl.cloneNode(true);
+    ghost.classList.add("enemy-dying-ghost");
+    ghost.style.position = "fixed";
+    ghost.style.left = rect.left + "px";
+    ghost.style.top = rect.top + "px";
+    ghost.style.width = rect.width + "px";
+    ghost.style.height = rect.height + "px";
+    ghost.style.zIndex = "9000";
+    ghost.style.pointerEvents = "none";
+    ghost.style.margin = "0";
+    ghost.style.opacity = "1"; // 重置透明度，避免继承原元素 0.3
+    document.body.appendChild(ghost);
+    // 触发动画
+    requestAnimationFrame(() => ghost.classList.add("enemy-dying"));
+    // 700ms 后清除浮层
+    setTimeout(() => ghost.remove(), 750);
   }
 
   // 教程引导：根据 step 显示气泡提示
@@ -78,14 +103,6 @@ export class UI {
     const el = document.getElementById("tutorial-tip");
     if (el) el.classList.remove("show");
     document.querySelectorAll(".tutorial-highlight").forEach(n => n.classList.remove("tutorial-highlight"));
-  }
-
-  // 敌人被击杀动画
-  onEnemyDeath(data) {
-    const cardEl = document.querySelector(`.enemy-card[data-id="${data.enemy.id}"]`);
-    if (!cardEl) return;
-    cardEl.classList.add("enemy-dying");
-    setTimeout(() => cardEl.classList.remove("enemy-dying"), 700);
   }
 
   // 敌人攻击动画：突进 + 属性色屏闪

@@ -4,7 +4,7 @@
 import {
   ELEMENT, POWER, POWER_MULTIPLIER, AFFINITY, AFFINITY_MULTIPLIER,
   RANGE, CARD_TYPE,
-} from "./data.js?v=14";
+} from "./data.js?v=15";
 
 /**
  * 获取卡牌当前生效的技能数据
@@ -41,7 +41,7 @@ export function composeSkill(cards) {
     // 规则4：万能属性同时改变属性和力度
     if (skill.element === ELEMENT.ALMIGHTY) {
       result.element = ELEMENT.ALMIGHTY;
-      result.power = Math.min(result.power + skill.power, POWER.XH);
+      result.power = Math.min(result.power + skill.power, POWER.UL);
       result.range = skill.range;
       continue;
     }
@@ -50,7 +50,7 @@ export function composeSkill(cards) {
     if (skill.element !== result.element) {
       result.element = skill.element;
     }
-    result.power = Math.min(result.power + skill.power, POWER.XH);
+    result.power = Math.min(result.power + skill.power, POWER.UL);
 
     // 规则3：范围由最后一张卡决定
     result.range = skill.range;
