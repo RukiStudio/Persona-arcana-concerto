@@ -3,12 +3,14 @@
 // ============================================================
 import {
   ELEMENT, ELEMENT_INFO, POWER_INFO, RANK_LABEL, CARD_TYPE, AFFINITY,
-} from "./data.js?v=4";
-import { getActiveSkill, calcBaseDamage } from "./core.js?v=4";
+  ENVIRONMENT_INFO,
+} from "./data.js?v=10";
+import { getActiveSkill, calcBaseDamage } from "./core.js?v=10";
 
 export class UI {
-  constructor(game) {
+  constructor(game, onReturnHub) {
     this.game = game;
+    this.onReturnHub = onReturnHub || null;
     this.selectedCardId = null;
     this.clickTimer = null; // 区分单击/双击
     this.bindStatic();
@@ -22,9 +24,37 @@ export class UI {
       case "playerHurt": this.onPlayerHurt(data); break;
       case "playerHeal": this.onPlayerHeal(data); break;
       case "battleEnd": this.showOverlay(data.victory); break;
+      case "enemyAttack": this.onEnemyAttack(data); break;
       case "enemyAct": break;
+      case "waveStart": this.onWaveStart(data); break;
     }
     this.render();
+  }
+
+  // 敌人攻击动画：突进 + 属性色屏闪
+  onEnemyAttack(data) {
+    const { enemy, skill, heal } = data;
+    const cardEl = document.querySelector(`.enemy-card[data-id="${enemy.id}"]`);
+    if (!cardEl) return;
+    if (heal !== undefined) {
+      // 敌人恢复：绿色脉动
+      cardEl.classList.add("heal-pulse");
+      this.floatNumber(cardEl, "+" + heal, "var(--c-green)");
+      setTimeout(() => cardEl.classList.remove("heal-pulse"), 600);
+      return;
+    }
+    cardEl.classList.add("enemy-attacking");
+    setTimeout(() => cardEl.classList.remove("enemy-attacking"), 500);
+    // 属性色屏闪
+    const el = skill?.element;
+    if (el && ELEMENT_INFO[el]) {
+      document.body.classList.add(`el-flash-${el}`);
+      setTimeout(() => document.body.classList.remove(`el-flash-${el}`), 350);
+    }
+  }
+
+  onWaveStart(data) {
+    this.addLog(`第 ${data.waveIndex + 1}/${data.total} 波来袭！`, "dmg");
   }
 
   bindStatic() {
@@ -34,7 +64,10 @@ export class UI {
     document.getElementById("btn-draw").onclick = () => this.game.buyDraw();
     document.getElementById("btn-upgrade").onclick = () => this.game.upgradeDeck();
     document.getElementById("btn-end").onclick = () => this.game.endTurn();
-    document.getElementById("overlay-btn").onclick = () => this.nextStage();
+    document.getElementById("overlay-btn").onclick = () => this.onOverlayContinue();
+    document.getElementById("btn-hub-return").onclick = () => {
+      if (this.onReturnHub) this.onReturnHub();
+    };
 
     // 构建 5 个构筑槽，并设为拖放目标
     const slotsEl = document.getElementById("compose-slots");
@@ -91,9 +124,12 @@ export class UI {
     document.getElementById("money-num").textContent = g.player.money;
     document.getElementById("deck-level").textContent = g.deckLevel;
     document.getElementById("hand-count").textContent = `${g.hand.length}/${g.handLimit}`;
-    document.getElementById("arcana-name").textContent = g.arcana.name;
+    document.getElementById("arcana-name").textContent = `${g.arcana.name} Lv.${g.arcanaLv}`;
     document.getElementById("theurgy-fill").style.width = g.theurgy + "%";
     document.getElementById("theurgy-text").textContent = g.theurgy + "%";
+
+    // 环境徽章区
+    this.renderEnvironment();
 
     // 操作栏
     document.getElementById("player-hp-text").textContent = `${g.player.hp}/${g.player.maxHp}`;
@@ -109,13 +145,26 @@ export class UI {
     document.getElementById("btn-draw").disabled = !canAct;
     document.getElementById("btn-upgrade").disabled = !canAct;
     document.getElementById("btn-draw").textContent = `DRAW ¥${g.player.drawCost}`;
-    const upCosts = [500, 1000, 2000, 4000];
+    const upCosts = [600, 1200, 2400, 4800];
     document.getElementById("btn-upgrade").textContent = g.deckLevel >= 5 ? "MAX" : `UPGRADE ¥${upCosts[g.deckLevel - 1]}`;
 
     this.renderEnemies();
     this.renderComposeSlots();
     this.renderResult();
     this.renderHand();
+  }
+
+  // 渲染局内减益环境徽章
+  renderEnvironment() {
+    const el = document.getElementById("env-badges");
+    if (!el) return;
+    const env = this.game.environment || [];
+    if (!env.length) { el.innerHTML = ""; return; }
+    el.innerHTML = env.map(key => {
+      const info = ENVIRONMENT_INFO[key];
+      if (!info) return "";
+      return `<span class="env-badge" title="${info.desc}">${info.icon} ${info.name}</span>`;
+    }).join("");
   }
 
   renderEnemies() {
@@ -163,14 +212,19 @@ export class UI {
 
   renderComposeSlots() {
     const slots = document.querySelectorAll(".slot");
+    const prevSlotIds = new Set((this._prevSlotIds || []));
+    const curSlotIds = [];
     slots.forEach((slot, i) => {
       const label = slot.querySelector(".slot-label");
       slot.innerHTML = "";
       slot.appendChild(label);
       const card = this.game.composeSlots[i];
       if (card) {
+        curSlotIds.push(card.id);
         slot.classList.add("active");
         const mini = this.buildCardEl(card, true);
+        // 新入槽的卡触发入场动画
+        if (!prevSlotIds.has(card.id)) mini.classList.add("card-enter");
         // 槽内卡牌可拖回手牌
         mini.draggable = true;
         mini.addEventListener("dragstart", (e) => {
@@ -187,6 +241,7 @@ export class UI {
         slot.classList.remove("active");
       }
     });
+    this._prevSlotIds = curSlotIds;
   }
 
   renderResult() {
@@ -202,8 +257,11 @@ export class UI {
       const target = this.game.targetEnemy();
       let base = calcBaseDamage(skill, this.game.player);
       document.getElementById("result-base").textContent = base;
-      const cup = 1 + 0.5 * this.game.player.cupStack;
-      document.getElementById("result-cup").textContent = `×${cup.toFixed(1)}`;
+      // 圣杯加成：基础 0.4/层；女皇阵营按等级再放大
+      const p = this.game.player;
+      const cupScale = p.arcanaBonus === "CUP_DOUBLE" ? ([1.5, 2.0, 2.5][(p.arcanaLv || 1) - 1] || 1.5) : 1;
+      const cup = 1 + 0.4 * (p.cupStack || 0) * cupScale;
+      document.getElementById("result-cup").textContent = `×${cup.toFixed(2)}`;
       // 最终估算（取目标相性）
       let final = base * cup;
       if (target) {
@@ -226,10 +284,16 @@ export class UI {
 
   renderHand() {
     const list = document.getElementById("hand-list");
+    // 记录上一帧手牌 id，新出现的卡触发入场动画
+    const prevIds = new Set((this._prevHandIds || []));
+    const curIds = [];
     list.innerHTML = "";
     this.game.hand.forEach(card => {
+      curIds.push(card.id);
       const el = this.buildCardEl(card, false);
       if (this.selectedCardId === card.id) el.classList.add("selected");
+      // 新抽到的卡触发入场动画
+      if (!prevIds.has(card.id)) el.classList.add("card-enter");
 
       // 拖动：将卡牌拖入构筑槽
       el.draggable = true;
@@ -252,6 +316,7 @@ export class UI {
 
       list.appendChild(el);
     });
+    this._prevHandIds = curIds;
   }
 
   // 区分单击（选中）与双击（使用）
@@ -276,6 +341,8 @@ export class UI {
   onHandCardDblClick(card) {
     this.selectedCardId = card.id;
     const t = card.type;
+    // 打出动画：克隆一张浮起消散（原元素会被 re-render 销毁）
+    this.playCardFx(card);
     // 辅助卡（权杖/圣杯/星币/总攻击/神通法）双击直接使用
     if (t === CARD_TYPE.WAND || t === CARD_TYPE.CUP || t === CARD_TYPE.PENTACLE) {
       this.game.useMinorCard(card);
@@ -287,6 +354,25 @@ export class UI {
       // 人格面具 / 宝剑：双击直接加入构筑槽
       this.game.addToCompose(card.id);
     }
+  }
+
+  // 打出卡牌的视觉特效：克隆元素上飘消散
+  playCardFx(card) {
+    const src = document.querySelector(`.card[data-id="${card.id}"]`);
+    if (!src) return;
+    const rect = src.getBoundingClientRect();
+    const clone = src.cloneNode(true);
+    clone.classList.add("card-played-fx");
+    clone.style.position = "absolute";
+    clone.style.left = rect.left + "px";
+    clone.style.top = rect.top + "px";
+    clone.style.width = rect.width + "px";
+    clone.style.height = rect.height + "px";
+    clone.style.pointerEvents = "none";
+    clone.style.zIndex = "60";
+    clone.style.margin = "0";
+    document.body.appendChild(clone);
+    setTimeout(() => clone.remove(), 700);
   }
 
   buildCardEl(card, mini) {
@@ -347,13 +433,20 @@ export class UI {
   }
 
   // ---------- 事件视觉反馈 ----------
+  // 浮动数字按相性/属性染色：弱点=金、耐性=灰、暴击=金、普通=红、吸收=紫
   onEnemyHit(data) {
-    const { enemy, dmg, crit, repel, drain } = data;
+    const { enemy, dmg, crit, repel, drain, affinity } = data;
     const cardEl = document.querySelector(`.enemy-card[data-id="${enemy.id}"]`);
     if (!cardEl) return;
     cardEl.classList.add("hit-flash");
     setTimeout(() => cardEl.classList.remove("hit-flash"), 300);
-    if (dmg > 0) this.floatNumber(cardEl, dmg, crit ? "var(--c-gold)" : "var(--c-red)");
+    if (dmg > 0) {
+      let color = "var(--c-red)";
+      if (crit) color = "var(--c-gold)";
+      else if (affinity === AFFINITY.WEAK) color = "#ff5722";
+      else if (affinity === AFFINITY.RESIST) color = "#9e9e9e";
+      this.floatNumber(cardEl, dmg, color);
+    }
     if (repel) this.floatNumber(cardEl, "REPEL", "var(--c-purple)");
     if (drain) this.floatNumber(cardEl, "DRAIN", "var(--c-green)");
   }
@@ -366,6 +459,13 @@ export class UI {
 
   onPlayerHeal(amt) {
     const hpBar = document.querySelector(".hp-block");
+    if (!hpBar) return;
+    // HP 条绿色脉动
+    const fill = hpBar.querySelector(".hp-fill");
+    if (fill) {
+      fill.classList.add("heal-pulse");
+      setTimeout(() => fill.classList.remove("heal-pulse"), 600);
+    }
     if (amt > 0) this.floatNumber(hpBar, "+" + amt, "var(--c-green)");
   }
 
@@ -398,20 +498,21 @@ export class UI {
     content.classList.toggle("defeat", !victory);
     document.getElementById("overlay-title").textContent = victory ? "VICTORY" : "DEFEAT";
     document.getElementById("overlay-desc").textContent = victory
-      ? "所有暗影已被驱散。" : "你倒下了……";
-    const isLast = this.game.stageIndex >= 2;
-    document.getElementById("overlay-btn").textContent = victory ? (isLast ? "GAME CLEAR" : "NEXT STAGE") : "RETRY";
+      ? "所有暗影已被驱散，返回天鹅绒房间查看养成。" : "你倒下了……";
+    document.getElementById("overlay-btn").textContent = victory ? "返回房间" : "重试";
   }
 
-  nextStage() {
+  onOverlayContinue() {
     const g = this.game;
     document.getElementById("overlay").classList.add("hidden");
-    if (g.state !== "BATTLE_END") return;
-    if (g.player.hp <= 0) {
-      g.player.hp = g.player.maxHp;
+    // 无论胜利或失败，结算后一律返回 Hub
+    // （旧版本用 g.state !== "BATTLE_END" 提前返回会导致按钮无反应）
+    if (this.onReturnHub) {
+      this.onReturnHub();
+    } else {
+      // 兜底：若未提供返回回调，强制切换显示
+      document.getElementById("hub-screen").classList.remove("hidden");
+      document.getElementById("game-root").classList.add("hidden");
     }
-    let next = g.stageIndex;
-    if (g.player.hp > 0 && g.stageIndex < 2) next = g.stageIndex + 1;
-    g.startStage(next);
   }
 }

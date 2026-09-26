@@ -4,7 +4,7 @@
 import {
   ELEMENT, POWER, POWER_MULTIPLIER, AFFINITY, AFFINITY_MULTIPLIER,
   RANGE, CARD_TYPE,
-} from "./data.js?v=4";
+} from "./data.js?v=10";
 
 /**
  * 获取卡牌当前生效的技能数据
@@ -61,13 +61,19 @@ export function composeSkill(cards) {
 
 /**
  * 计算合成技能的基础伤害（不含相性/圣杯/倒地/暴击）
+ * 阵营伤害加成按等级缩放：MAGICIAN 火焰 / EMPEROR 电击 / CHARIOT 物理
  */
 export function calcBaseDamage(skill, player) {
   const atk = player.attack;
   const mult = POWER_MULTIPLIER[skill.power] ?? 1;
-  // 阵营增益
+  const lv = player.arcanaLv || 1;
   let arcanaBonus = 1;
-  if (player.arcanaBonus === "FIRE_DMG" && skill.element === ELEMENT.FIRE) arcanaBonus = 1.2;
+  if (player.arcanaBonus === "FIRE_DMG" && skill.element === ELEMENT.FIRE)
+    arcanaBonus = [1.10, 1.20, 1.30][lv - 1] || 1.10;
+  else if (player.arcanaBonus === "ELEC_DMG" && skill.element === ELEMENT.ELEC)
+    arcanaBonus = [1.10, 1.20, 1.30][lv - 1] || 1.10;
+  else if (player.arcanaBonus === "PHYS_DMG" && skill.element === ELEMENT.PHYSICAL)
+    arcanaBonus = [1.05, 1.10, 1.15][lv - 1] || 1.05;
   return Math.round(atk * mult * arcanaBonus);
 }
 
@@ -81,11 +87,11 @@ export function getAffinity(element, enemy) {
 /**
  * 伤害计算（计划书公式）
  *  final = base × affinity × cup × knockdown × crit
- *  REPEL: 反噬玩家（返回负数表示反弹）
- *  DRAIN: 转化为治疗（返回负数表示吸收）
- *  NULL: 0 伤害
+ *  env 支持：CRIT_DOWN（玩家暴击率减半）
+ *  REPEL: 反噬玩家；DRAIN: 转化为治疗；NULL: 0 伤害
  */
-export function calculateDamage(skill, player, enemy) {
+export function calculateDamage(skill, player, enemy, env) {
+  env = env || [];
   const base = calcBaseDamage(skill, player);
   const affinity = getAffinity(skill.element, enemy);
   const mult = AFFINITY_MULTIPLIER[affinity];
@@ -100,9 +106,15 @@ export function calculateDamage(skill, player, enemy) {
     return { damage: 0, affinity, isCrit: false };
   }
 
-  const cupMult = 1 + 0.5 * (player.cupStack || 0);
+  // 圣杯加成：基础 0.4/层；女皇阵营按等级再放大
+  const lv = player.arcanaLv || 1;
+  const cupScale = player.arcanaBonus === "CUP_DOUBLE" ? ([1.5, 2.0, 2.5][lv - 1] || 1.5) : 1;
+  const cupMult = 1 + 0.4 * (player.cupStack || 0) * cupScale;
   const kdMult = enemy.is_knocked_down ? 1.25 : 1.0;
-  const isCrit = Math.random() < (player.critRate || 0);
+  let critRate = player.critRate || 0;
+  // 环境减益：暴击率减半
+  if (env.includes("CRIT_DOWN")) critRate *= 0.5;
+  const isCrit = Math.random() < critRate;
   const critMult = isCrit ? 1.5 : 1.0;
 
   // REPEL：反弹给玩家

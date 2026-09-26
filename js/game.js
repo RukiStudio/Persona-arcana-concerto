@@ -4,9 +4,10 @@
 import {
   ARCANA, PERSONAS, MINOR_CARDS, ENEMIES, STAGES,
   CARD_TYPE, RANK, RANK_LABEL, POWER, RANGE, ELEMENT, AFFINITY,
+  STARTING_PERSONAS,
   nextId,
-} from "./data.js?v=4";
-import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=4";
+} from "./data.js?v=10";
+import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=10";
 
 // 卡牌工厂
 function makePersonaCard(key) {
@@ -43,33 +44,43 @@ function makeAllOutCard(power) {
 }
 
 export class Game {
-  constructor() {
+  constructor(meta) {
+    this.meta = meta || null;
     this.stageIndex = 0;
-    this.arcana = ARCANA.FOOL;
+    this.arcana = (meta && meta.getArcana()) || ARCANA.FOOL;
+    // 从 meta 获取战斗属性（难度压缩后基础值 600/90/0.03/5/2）
+    const ms = meta ? meta.getBattlePlayerStats() : { attack: 90, maxHp: 600, critRate: 0.03, maxReversed: 2, theurgyMax: 2, handLimit: 5, arcanaLv: 1 };
+    this.arcanaLv = ms.arcanaLv || 1;
     this.player = {
-      maxHp: 900, hp: 900, attack: 120,
-      critRate: 0.05,
+      maxHp: ms.maxHp, hp: ms.maxHp, attack: ms.attack,
+      critRate: ms.critRate,
       cupStack: 0,
+      // 局内资金 ¥：每局固定起手 120，不持久（区别于 meta.money = 精魄 ◈）
       money: 120,
-      drawCost: 50,
-      arcanaBonus: null, // "FIRE_DMG" etc.
-      maxReversed: 2, // 场上同时存在的逆位牌上限
+      drawCost: 60,
+      arcanaBonus: this.arcana.bonusKey,
+      arcanaLv: this.arcanaLv,
+      maxReversed: ms.maxReversed,
     };
     this.deckLevel = 1;
-    this.handLimit = 6;
+    this.handLimit = ms.handLimit;
     this.theurgy = 0;
     this.theurgyUses = 0;
-    this.theurgyMax = 3;
+    this.theurgyMax = ms.theurgyMax;
     this.turn = 0;
     this.state = "IDLE"; // IDLE, PLAYER_ACTION, ENEMY_ACTION, BATTLE_END
     this.deck = [];
     this.hand = [];
     this.composeSlots = []; // 当前构筑中的卡牌
     this.enemies = [];
+    this.waves = [];       // 多波次关卡数据
+    this.waveIndex = 0;
+    this.environment = []; // 局内减益环境
     this.targetEnemyId = null;
     this.listeners = [];
     this.firstComposeThisTurn = false;
     this.bonusCards = []; // 升级解锁的高阶卡 key（牌库重建时保留）
+    this.supportBuffs = {}; // 辅助技能的临时 buff（tarukaja, rakukaja 等）
   }
 
   on(fn) { this.listeners.push(fn); }
@@ -77,17 +88,25 @@ export class Game {
   log(msg, cls = "info") { this.emit("log", { msg, cls }); }
 
   // ---------- 牌库 / 发牌 ----------
+  // 阵营锁定卡池：仅本阵营 persona_pool 中已解锁的人格面具入牌库
   buildDeck() {
-    const pool = this.arcana.persona_pool;
+    let pool = this.arcana.persona_pool;
+    if (this.meta) {
+      pool = pool.filter(k => this.meta.isUnlocked(k));
+    }
+    // 空池回退到初始人格面具
+    if (!pool || pool.length === 0) pool = STARTING_PERSONAS;
     const deck = [];
-    // 人格面具卡：每个 2 张
-    pool.forEach(key => { deck.push(makePersonaCard(key)); deck.push(makePersonaCard(key)); });
+    // 人格面具卡：每个 2 张（限制总数避免牌库过大）
+    const usePool = pool.length > 10 ? pool.slice(0, 10) : pool;
+    usePool.forEach(key => { deck.push(makePersonaCard(key)); deck.push(makePersonaCard(key)); });
     // 小阿尔卡那
     deck.push(makeMinorCard("wand"));
     deck.push(makeMinorCard("cup")); deck.push(makeMinorCard("cup"));
     deck.push(makeMinorCard("pentacle")); deck.push(makeMinorCard("pentacle"));
     // 宝剑
     deck.push(makeMinorCard("sword_sm")); deck.push(makeMinorCard("sword_md"));
+    if (this.deckLevel >= 3) deck.push(makeMinorCard("sword_lg"));
     // 升级解锁的高阶卡（重建时保留）
     this.bonusCards.forEach(key => deck.push(makePersonaCard(key)));
     this.deck = this.shuffle(deck);
@@ -132,9 +151,9 @@ export class Game {
     return true;
   }
 
-  // 升级牌库
+  // 升级牌库（费用 ×1.2）
   upgradeDeck() {
-    const costs = [500, 1000, 2000, 4000];
+    const costs = [600, 1200, 2400, 4800];
     const cost = costs[this.deckLevel - 1] || 9999;
     if (this.deckLevel >= 5) { this.log("牌库已满级", "info"); return false; }
     if (this.player.money < cost) { this.log("资金不足！", "info"); return false; }
@@ -156,30 +175,54 @@ export class Game {
   startStage(idx) {
     this.stageIndex = idx;
     const stage = STAGES[idx];
-    this.enemies = stage.enemies.map((k, i) => {
+    // 多波次 + 环境减益
+    this.waves = stage.waves || [stage.enemies];
+    this.waveIndex = 0;
+    this.environment = stage.environment || [];
+    this.spawnWave(0);
+
+    // 从 meta 同步属性和阵营增益
+    if (this.meta) {
+      const ms = this.meta.getBattlePlayerStats();
+      this.player.maxHp = ms.maxHp;
+      this.player.attack = ms.attack;
+      this.player.critRate = ms.critRate;
+      this.player.maxReversed = ms.maxReversed;
+      this.theurgyMax = ms.theurgyMax;
+      this.handLimit = ms.handLimit;
+      this.arcana = this.meta.getArcana();
+      this.arcanaLv = ms.arcanaLv || 1;
+      this.player.arcanaBonus = this.arcana.bonusKey;
+      this.player.arcanaLv = this.arcanaLv;
+    }
+
+    this.bonusCards = []; // 每关重置高阶卡解锁
+    this.supportBuffs = {}; // 重置辅助 buff
+    this.buildDeck();
+    this.theurgy = 0;
+    this.theurgyUses = 0;
+    this.player.hp = this.player.maxHp;
+    this.turn = 0;
+    const envNames = this.environment.length ? ` | 环境：${this.environment.map(e => e).join(",")}` : "";
+    this.log(`【${stage.name}】战斗开始！阵营：${this.arcana.name}（Lv.${this.arcanaLv}）${envNames}`, "info");
+    this.emit("stageStart", stage);
+    this.startTurn();
+  }
+
+  // 生成指定波次的敌人
+  spawnWave(waveIdx) {
+    const waveKeys = this.waves[waveIdx] || [];
+    this.enemies = waveKeys.map((k, i) => {
       const e = ENEMIES[k];
       return {
-        id: `e${i}`, key: k, name: e.name, icon: e.icon,
+        id: `e${i}_${waveIdx}`, key: k, name: e.name, icon: e.icon,
         level: e.level, maxHp: e.hp, hp: e.hp,
         affinities: { ...e.affinities },
         skills: e.skills, attack: e.attack,
         is_knocked_down: false, intent: null,
       };
     });
-    // 设置阵营增益
-    this.player.arcanaBonus =
-      this.arcana.id === "MAGICIAN" ? "FIRE_DMG" :
-      this.arcana.id === "LOVERS" ? "HEAL_UP" : null;
-
-    this.bonusCards = []; // 每关重置高阶卡解锁
-    this.buildDeck();
-    this.theurgy = 0;
-    this.theurgyUses = 0;
-    this.player.hp = this.player.maxHp;
-    this.turn = 0;
-    this.log(`【${stage.name}】战斗开始！阵营：${this.arcana.name}`, "info");
-    this.emit("stageStart", stage);
-    this.startTurn();
+    this.targetEnemyId = null;
   }
 
   // ---------- 回合流程 ----------
@@ -188,14 +231,35 @@ export class Game {
     this.state = "PLAYER_ACTION";
     this.firstComposeThisTurn = true;
     this.player.cupStack = 0;
-    this.player.drawCost = 50;
-    // 回合资金：100 + 回合数×20
-    const income = 100 + this.turn * 20;
+    this.player.drawCost = 60;
+    this.supportBuffs = {}; // 每回合清除辅助 buff
+    // 回合资金：80 + 回合数×15
+    let income = 80 + this.turn * 15;
+    // 教皇阵营：按等级 +¥30/+¥60/+¥80（Lv3 起手额外 +¥100）
+    if (this.player.arcanaBonus === "EXTRA_INCOME") {
+      const bonus = [30, 60, 80][this.arcanaLv - 1] || 30;
+      income += bonus;
+      if (this.arcanaLv >= 3 && this.turn === 1) income += 100;
+    }
     this.player.money += income;
     this.log(`—— 回合 ${this.turn} ——  获得 ¥${income}`, "info");
 
-    // 发牌：根据牌库等级，每回合发 3~5 张
-    const drawNum = Math.min(5, 2 + this.deckLevel);
+    // 节制阵营：按等级 回合回 0/5%/10% HP
+    if (this.player.arcanaBonus === "DAMAGE_REDUCE" && this.arcanaLv >= 2) {
+      const healPct = [0, 0.05, 0.10][this.arcanaLv - 1] || 0;
+      if (healPct > 0 && this.player.hp < this.player.maxHp) {
+        const heal = Math.round(this.player.maxHp * healPct);
+        this.player.hp = Math.min(this.player.maxHp, this.player.hp + heal);
+        this.log(`节制回 ${heal} HP`, "heal");
+      }
+    }
+
+    // 发牌：min(4, 1+牌库等级)
+    let drawNum = Math.min(4, 1 + this.deckLevel);
+    // 隐者阵营：按等级 多抽 1/2/2 张
+    if (this.player.arcanaBonus === "EXTRA_DRAW") {
+      drawNum += [1, 2, 2][this.arcanaLv - 1] || 1;
+    }
     this.drawCards(drawNum);
 
     // 清除总攻击卡
@@ -218,8 +282,8 @@ export class Game {
 
   endTurn() {
     if (this.state !== "PLAYER_ACTION") return;
-    // 清除构筑区
-    this.composeSlots = [];
+    // 将构筑区卡牌移回手牌
+    this.clearCompose();
     // 清除圣杯层数
     this.player.cupStack = 0;
     // 移除总攻击卡
@@ -246,7 +310,21 @@ export class Game {
         return;
       }
       const skill = e.intent || e.skills[0];
+      // 恢复技能：敌人先治疗自己
+      if (skill.element === ELEMENT.HEAL) {
+        const healAmt = Math.round(e.attack * ({1:0.5,2:1.0,3:1.8,4:2.8,5:4.0}[skill.power] || 1));
+        const before = e.hp;
+        e.hp = Math.min(e.maxHp, e.hp + healAmt);
+        const real = e.hp - before;
+        this.log(`${e.name} 使用 ${skill.name}，恢复 ${real} HP`, "heal");
+        this.emit("enemyAttack", { enemy: e, skill, heal: real });
+        this.emit("state");
+        setTimeout(act, 700);
+        return;
+      }
       this.log(`${e.name} 使用 ${skill.name}`, "dmg");
+      // 攻击动画触发（在造成伤害前 emit，UI 可播放突进/屏闪）
+      this.emit("enemyAttack", { enemy: e, skill });
       // 敌人伤害
       const dmg = this.calcEnemyDamage(skill, e);
       this.damagePlayer(dmg);
@@ -258,8 +336,19 @@ export class Game {
   }
 
   calcEnemyDamage(skill, enemy) {
-    const mult = { 1: 0.5, 2: 1.0, 3: 1.8, 4: 2.8, 5: 4.0 }[skill.power] || 1;
-    return Math.round(enemy.attack * mult);
+    const mult = { 1: 0.6, 2: 1.2, 3: 2.0, 4: 3.2, 5: 4.5 }[skill.power] || 1;
+    let base = enemy.attack * mult;
+    // 环境减益：敌方攻击+25%
+    if (this.environment.includes("ENEMY_ATK_UP")) base *= 1.25;
+    let dmg = Math.round(base);
+    // 节制阵营：按等级 减伤 10%/15%/20%
+    if (this.player.arcanaBonus === "DAMAGE_REDUCE") {
+      const reduce = [0.10, 0.15, 0.20][this.arcanaLv - 1] || 0.10;
+      dmg = Math.round(dmg * (1 - reduce));
+    }
+    // 防御 buff
+    if (this.supportBuffs.DEF_UP) dmg = Math.round(dmg * 0.65);
+    return Math.max(1, dmg);
   }
 
   afterEnemyTurn() {
@@ -275,6 +364,8 @@ export class Game {
   }
 
   healPlayer(amt) {
+    // 环境减益：恢复效果减半
+    if (this.environment.includes("HEAL_HALVED")) amt = Math.round(amt * 0.5);
     const before = this.player.hp;
     this.player.hp = Math.min(this.player.maxHp, this.player.hp + amt);
     const real = this.player.hp - before;
@@ -293,8 +384,9 @@ export class Game {
     if (this.state !== "PLAYER_ACTION") return false;
     const card = this.hand.find(c => c.id === cardId) || this.composeSlots.find(c => c.id === cardId);
     if (!card || card.type !== CARD_TYPE.PERSONA) return false;
-    // 若正→逆，检查场上逆位牌是否已达上限
-    if (!card.is_reversed && this.getReversedCount() >= this.player.maxReversed) {
+    // 若正→逆，检查场上逆位牌是否已达上限（倒悬者阵营不受限）
+    const freeFlip = this.player.arcanaBonus === "FREE_FLIP";
+    if (!card.is_reversed && !freeFlip && this.getReversedCount() >= this.player.maxReversed) {
       this.log(`场上逆位牌已达上限 (${this.player.maxReversed}张)`, "info");
       return false;
     }
@@ -346,8 +438,10 @@ export class Game {
     if (idx < 0) return;
     this.hand.splice(idx, 1);
     if (card.type === CARD_TYPE.CUP) {
-      this.player.cupStack++;
-      this.log(`圣杯层数 +1（当前 ${this.player.cupStack}）`, "gold");
+      // 女皇阵营：圣杯效果翻倍
+      const stacks = this.player.arcanaBonus === "CUP_DOUBLE" ? 2 : 1;
+      this.player.cupStack += stacks;
+      this.log(`圣杯层数 +${stacks}（当前 ${this.player.cupStack}）`, "gold");
     } else if (card.type === CARD_TYPE.PENTACLE) {
       const gain = 200 + this.turn * 10;
       this.player.money += gain;
@@ -378,6 +472,8 @@ export class Game {
     this.log(`神通法：${card.name}！`, "info");
     this.executeSkill(card.skill, card);
     this.emit("state");
+    // 神通法可能击杀敌人，需检查战斗结束
+    this.checkBattleEnd();
   }
 
   // 总攻击
@@ -388,11 +484,18 @@ export class Game {
     this.log(`⚔ 总攻击发动！⚔`, "gold");
     this.executeSkill(card.skill, card);
     this.emit("state");
+    // 总攻击可能击杀敌人，需检查战斗结束
+    this.checkBattleEnd();
   }
 
   // 确认构筑 → 打出合成技能
   confirmCompose() {
     if (this.composeSlots.length === 0) { this.log("构筑区为空", "info"); return false; }
+    // 环境减益：构筑需至少 2 张牌
+    if (this.environment.includes("COMPOSE_COST_UP") && this.composeSlots.length < 2) {
+      this.log("当前环境要求构筑至少 2 张牌！", "info");
+      return false;
+    }
     const skill = this.getEffectiveComposeSkill();
     if (!skill) return false;
 
@@ -411,18 +514,56 @@ export class Game {
     return true;
   }
 
-  // 执行技能（伤害/治疗结算）
+  // 执行技能（伤害/治疗/辅助结算）
   executeSkill(skill, sourceCard) {
-    // 恢复 / 辅助
-    if (skill.element === ELEMENT.HEAL) {
-      let amt = Math.round(this.player.attack * ({1:0.5,2:1.0,3:1.8,4:2.8,5:4.0}[skill.power]||1));
-      if (this.player.arcanaBonus === "HEAL_UP") amt = Math.round(amt * 1.3);
-      if (skill.range === RANGE.ALL) amt = Math.round(amt * 1.2);
+    // 非构筑来源的技能（神通法/总攻击/宝剑直接打出）需应用 POWER_MINUS_1 环境
+    let effSkill = skill;
+    if (sourceCard && this.environment.includes("POWER_MINUS_1") && !skill._envApplied) {
+      effSkill = { ...skill, power: Math.max(POWER.SM, skill.power - 1), _envApplied: true };
+    }
+    // MAGICIAN/EMPEROR Lv2+ 力度+1阶（仅对应属性）；Lv3 范围转 ALL
+    if ((this.player.arcanaBonus === "FIRE_DMG" && effSkill.element === ELEMENT.FIRE) ||
+        (this.player.arcanaBonus === "ELEC_DMG" && effSkill.element === ELEMENT.ELEC)) {
+      if (this.arcanaLv >= 2) {
+        effSkill = { ...effSkill, power: Math.min(POWER.XH, effSkill.power + 1) };
+      }
+      if (this.arcanaLv >= 3) {
+        effSkill = { ...effSkill, range: RANGE.ALL };
+      }
+    }
+
+    // 辅助技能
+    if (effSkill.element === ELEMENT.SUPPORT) {
+      if (effSkill.support === "ATK_UP") {
+        this.supportBuffs.ATK_UP = true;
+        this.log("攻击力上升！", "info");
+      } else if (effSkill.support === "DEF_UP") {
+        this.supportBuffs.DEF_UP = true;
+        this.log("防御力上升！", "info");
+      } else if (effSkill.support === "ENEMY_DEBUFF") {
+        this.supportBuffs.ENEMY_DEBUFF = true;
+        this.enemies.forEach(e => { if (e.hp > 0) e.attack = Math.round(e.attack * 0.7); });
+        this.log("敌人攻击力下降！", "info");
+      }
+      this.emit("state");
+      return;
+    }
+
+    // 恢复
+    if (effSkill.element === ELEMENT.HEAL) {
+      const mult = Game.POWER_MULT[effSkill.power] ?? 1;
+      let amt = Math.round(this.player.attack * mult);
+      // 恋爱阵营：按等级 恢复 +10%/+20%/+30%
+      if (this.player.arcanaBonus === "HEAL_UP") {
+        const bonus = [0.10, 0.20, 0.30][this.arcanaLv - 1] || 0.10;
+        amt = Math.round(amt * (1 + bonus));
+      }
+      if (effSkill.range === RANGE.ALL) amt = Math.round(amt * 1.2);
       this.healPlayer(amt);
       return;
     }
 
-    const targets = skill.range === RANGE.ALL
+    const targets = effSkill.range === RANGE.ALL
       ? this.enemies.filter(e => e.hp > 0)
       : [this.targetEnemy()].filter(e => e && e.hp > 0);
 
@@ -432,13 +573,20 @@ export class Game {
     }
 
     targets.forEach(enemy => {
-      const result = calculateDamage(skill, this.player, enemy);
-      this.applyDamageResult(enemy, result, skill);
+      // 应用临时攻击力 buff
+      const origAtk = this.player.attack;
+      if (this.supportBuffs.ATK_UP) this.player.attack = Math.round(origAtk * 1.3);
+      const result = calculateDamage(effSkill, this.player, enemy, this.environment);
+      this.player.attack = origAtk; // 恢复
+      this.applyDamageResult(enemy, result, effSkill);
     });
 
     // 检查所有敌人倒地 → 生成总攻击卡
     this.checkAllOutTrigger();
   }
+
+  // 力度→恢复系数（与 POWER_MULTIPLIER 同步，避免 import 循环）
+  static POWER_MULT = { 1: 0.4, 2: 0.8, 3: 1.4, 4: 2.2, 5: 3.2 };
 
   targetEnemy() {
     if (this.targetEnemyId) {
@@ -464,8 +612,14 @@ export class Game {
       return;
     }
 
-    enemy.hp = Math.max(0, enemy.hp - result.damage);
-    this.emit("enemyHit", { enemy, dmg: result.damage, crit: result.isCrit, affinity: result.affinity });
+    // 死神 Lv3 处决：<30% 血敌人额外 +50% 伤害
+    let finalDmg = result.damage;
+    if (this.player.arcanaBonus === "KILL_HEAL" && this.arcanaLv >= 3 &&
+        enemy.hp > 0 && enemy.hp < enemy.maxHp * 0.30) {
+      finalDmg = Math.round(finalDmg * 1.5);
+    }
+    enemy.hp = Math.max(0, enemy.hp - finalDmg);
+    this.emit("enemyHit", { enemy, dmg: finalDmg, crit: result.isCrit, affinity: result.affinity });
 
     if (result.damage === 0 && result.affinity === AFFINITY.NULL) {
       this.log(`${enemy.name} 无效化了攻击`, "info");
@@ -485,7 +639,30 @@ export class Game {
 
     if (enemy.hp <= 0) {
       this.log(`${enemy.name} 被击倒！`, "dmg");
+      // 死神阵营：击杀回血 15%/25%/25%，Lv3 <30%血处决 +50% 伤害
+      if (this.player.arcanaBonus === "KILL_HEAL") {
+        const healPct = [0.15, 0.25, 0.25][this.arcanaLv - 1] || 0.15;
+        const heal = Math.round(this.player.maxHp * healPct);
+        this.healPlayer(heal);
+      }
     }
+    // 正义阵营：Lv2+ 暴击回血 5%/10%
+    if (this.player.arcanaBonus === "CRIT_UP" && result.isCrit && this.arcanaLv >= 2) {
+      const critHealPct = [0, 0.05, 0.10][this.arcanaLv - 1] || 0;
+      if (critHealPct > 0) {
+        const heal = Math.round(this.player.maxHp * critHealPct);
+        this.healPlayer(heal);
+      }
+    }
+  }
+
+  // 死神 Lv3 处决：<30% 血敌人额外 +50% 伤害
+  applyDeathExecute(enemy, dmg) {
+    if (this.player.arcanaBonus === "KILL_HEAL" && this.arcanaLv >= 3 &&
+        enemy.hp > 0 && enemy.hp < enemy.maxHp * 0.30) {
+      return Math.round(dmg * 1.5);
+    }
+    return dmg;
   }
 
   addTheurgy(amt) {
@@ -519,10 +696,27 @@ export class Game {
   }
 
   checkBattleEnd() {
-    if (this.enemies.every(e => e.hp <= 0)) {
-      this.battleEnd(true);
-    } else if (this.player.hp <= 0) {
+    if (this.player.hp <= 0) {
       this.battleEnd(false);
+      return;
+    }
+    // 当前波全部死亡
+    if (this.enemies.every(e => e.hp <= 0)) {
+      const isLastWave = this.waveIndex >= this.waves.length - 1;
+      if (isLastWave) {
+        this.battleEnd(true);
+      } else {
+        // 生成下一波：玩家不回血，清构筑槽/倒地状态
+        this.waveIndex++;
+        this.spawnWave(this.waveIndex);
+        this.composeSlots = [];
+        this.hand = this.hand.filter(c => c.type !== CARD_TYPE.ALL_OUT);
+        this.firstComposeThisTurn = true;
+        this.rollEnemyIntents();
+        this.log(`▶ 第 ${this.waveIndex + 1}/${this.waves.length} 波来袭！`, "info");
+        this.emit("waveStart", { waveIndex: this.waveIndex, total: this.waves.length });
+        this.emit("state");
+      }
     }
   }
 
@@ -530,7 +724,19 @@ export class Game {
     this.state = "BATTLE_END";
     if (victory) {
       const stage = STAGES[this.stageIndex];
-      this.log(`🎉 胜利！获得 ${stage.reward.exp} 经验，¥${stage.reward.money}`, "gold");
+      this.log(`🎉 胜利！获得 ${stage.reward.exp} 经验，◈${stage.reward.money} 精魄`, "gold");
+      // 通过 meta 记录经验和精魄（meta.money = 精魄，持久；局内 player.money 不持久）
+      if (this.meta) {
+        this.meta.addExp(stage.reward.exp);
+        this.meta.money += stage.reward.money;
+        this.meta.clearStage(stage.id);
+        // 注册使用过的人格面具到图鉴
+        this.hand.forEach(c => { if (c.cardKey) this.meta.registerPersona(c.cardKey); });
+        this.composeSlots.forEach(c => { if (c.cardKey) this.meta.registerPersona(c.cardKey); });
+        this.bonusCards.forEach(k => this.meta.registerPersona(k));
+        this.meta.save();
+      }
+      // 不再累加到 player.money（局内资金仅本局有效）
     } else {
       this.log(`💀 战斗失败...`, "dmg");
     }
@@ -547,9 +753,22 @@ export class Game {
     const skill = composeSkill(this.composeSlots);
     if (!skill) return null;
     const eff = { ...skill };
-    if (this.arcana.id === "FOOL" && this.firstComposeThisTurn) {
-      eff.power = Math.min(eff.power + 1, POWER.XH);
-      eff.foolBonus = true;
+    // 环境减益：力度-1阶（下限 SM）
+    if (this.environment.includes("POWER_MINUS_1")) {
+      eff.power = Math.max(POWER.SM, eff.power - 1);
+      eff._envApplied = true;
+    }
+    // 愚者：Lv1 首次构筑+1阶；Lv2 首次2次+1阶；Lv3 所有+1阶
+    if (this.arcana.bonusKey === "FOOL_FIRST") {
+      const lv = this.arcanaLv;
+      let bonus = false;
+      if (lv === 1 && this.firstComposeThisTurn) bonus = true;
+      else if (lv === 2 && this.firstComposeThisTurn) bonus = true;
+      else if (lv === 3) bonus = true; // 所有构筑+1阶
+      if (bonus) {
+        eff.power = Math.min(eff.power + 1, POWER.XH);
+        eff.foolBonus = true;
+      }
     }
     return eff;
   }
