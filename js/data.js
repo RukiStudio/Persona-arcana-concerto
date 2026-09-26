@@ -31,16 +31,17 @@ export const ELEMENT_INFO = {
 };
 
 // 力度阶数
-export const POWER = { SM: 1, MD: 2, LG: 3, HV: 4, XH: 5 };
+export const POWER = { SM: 1, MD: 2, LG: 3, HV: 4, XH: 5, UL: 6 };
 export const POWER_INFO = {
   1: { name: "SMALL", label: "SM" },
   2: { name: "MEDIUM", label: "MD" },
   3: { name: "LARGE", label: "LG" },
   4: { name: "HEAVY", label: "HV" },
   5: { name: "COLOSSAL", label: "XH" },
+  6: { name: "ULTRA", label: "UL" },
 };
 // 难度压缩：玩家技能力度系数整体下调
-export const POWER_MULTIPLIER = { 1: 0.4, 2: 0.8, 3: 1.4, 4: 2.2, 5: 3.2 };
+export const POWER_MULTIPLIER = { 1: 0.4, 2: 0.8, 3: 1.4, 4: 2.2, 5: 3.2, 6: 4.5 };
 
 export const RANGE = { SINGLE: "SINGLE", ALL: "ALL" };
 

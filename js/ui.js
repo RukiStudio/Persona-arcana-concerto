@@ -4,8 +4,8 @@
 import {
   ELEMENT, ELEMENT_INFO, POWER_INFO, RANK_LABEL, CARD_TYPE, AFFINITY,
   ENVIRONMENT_INFO,
-} from "./data.js?v=12";
-import { getActiveSkill, calcBaseDamage } from "./core.js?v=12";
+} from "./data.js?v=13";
+import { getActiveSkill, calcBaseDamage } from "./core.js?v=13";
 
 export class UI {
   constructor(game, onReturnHub) {
@@ -28,6 +28,7 @@ export class UI {
       case "enemyAct": break;
       case "waveStart": this.onWaveStart(data); break;
       case "tutorial": this.onTutorial(data); break;
+      case "enemyDeath": this.onEnemyDeath(data); break;
     }
     this.render();
   }
@@ -36,9 +37,12 @@ export class UI {
   onTutorial(data) {
     const tips = {
       1: { title: "① 抽 取 卡 牌", body: "点击右下「DRAW」按钮花费 ¥ 抽牌。\n每回合自动发牌，但额外抽牌能加快集火。", target: "#btn-draw" },
-      2: { title: "② 出 牌 / 构 筑", body: "双击手牌可立即使用人格面具技能；\n或将人格面具卡拖入下方 5 个构筑槽合成更强技能。", target: "#compose-slots" },
-      3: { title: "③ 确 认 构 筑", body: "放入 2~5 张人格面具卡后，点击「CONFIRM」释放合成技能攻击敌人。\n注意敌人弱点（▼）可造成双倍伤害。", target: "#btn-confirm" },
+      2: { title: "② 出 牌 / 构 筑", body: "双击手牌可立即使用人格面具技能；\n或将人格面具卡拖入下方 5 个构筑槽合成更强技能。\n★ 构筑规则：2~5 张同阵营人格面具卡，按总力度×等级计算伤害", target: "#compose-slots" },
+      3: { title: "③ 确 认 构 筑", body: "放入 2~5 张人格面具卡后，点击「CONFIRM」释放合成技能攻击敌人。\n★ 弱点机制：使用敌人▼属性攻击可造成双倍伤害并令其倒地\n★ 倒地：全部敌人倒地后可发动总攻击", target: "#btn-confirm" },
       4: { title: "④ 结 束 回 合", body: "行动完毕后点击「END TURN」结束本回合，\n敌人将发动攻击。循环直至击败所有敌人。", target: "#btn-end" },
+      5: { title: "⑤ 总 攻 击", body: "敌人全部倒地后，手牌中会出现「总攻击」卡。\n双击它可对全体敌人造成超大伤害！\n但总攻击后会解除所有倒地状态，请把握时机。", target: "#hand-area" },
+      6: { title: "⑥ 战 斗 胜 利", body: "击败所有敌人即可获胜，返回天鹅绒房间。\n获得 ◈ 精魄（局外货币）和经验值。", target: null },
+      7: { title: "⑦ 局 外 养 成", body: "★ 局外养成系统：\n• 人格面具图鉴：查看已收集的人格面具\n• 合体召唤：用 2 张人格面具合成新的（消耗精魄）\n• 属性强化：用属性点提升基础属性\n• 阵营选择：切换阵营并升级特性\n• 天鹅绒商店：购买精魄包与扩展\n★ 多档案存档：每个玩家独立进度", target: ".hub-nav" },
     };
     const tip = tips[data.step];
     if (!tip) { this.hideTutorialTip(); return; }
@@ -74,6 +78,14 @@ export class UI {
     const el = document.getElementById("tutorial-tip");
     if (el) el.classList.remove("show");
     document.querySelectorAll(".tutorial-highlight").forEach(n => n.classList.remove("tutorial-highlight"));
+  }
+
+  // 敌人被击杀动画
+  onEnemyDeath(data) {
+    const cardEl = document.querySelector(`.enemy-card[data-id="${data.enemy.id}"]`);
+    if (!cardEl) return;
+    cardEl.classList.add("enemy-dying");
+    setTimeout(() => cardEl.classList.remove("enemy-dying"), 700);
   }
 
   // 敌人攻击动画：突进 + 属性色屏闪
@@ -226,9 +238,11 @@ export class UI {
       const intentIcon = e.intent ? (e.intent.element === "HEAL" || e.intent.element === "SUPPORT" ? "▲" : "▸") : "?";
       const intentName = e.intent ? `${e.intent.name} (${e.intent.range === "ALL" ? "ALL" : "SINGLE"})` : "UNKNOWN";
 
-      // 相性角标
+      // 相性角标：仅显示已揭示的属性（受对应属性伤害后才揭示；死亡后全部揭示）
+      const revealed = e.revealedAffinities || new Set();
+      const showAll = e.hp <= 0;
       const affs = Object.entries(e.affinities)
-        .filter(([, v]) => v !== AFFINITY.NORMAL)
+        .filter(([el, v]) => v !== AFFINITY.NORMAL && (showAll || revealed.has(el)))
         .map(([el, v]) => {
           const info = ELEMENT_INFO[el];
           return `<span class="aff-badge aff-${v}">${info ? info.icon : ""}${v}</span>`;
@@ -245,7 +259,7 @@ export class UI {
           <div class="enemy-hp-bar"><div class="enemy-hp-fill" style="width:${e.hp / e.maxHp * 100}%"></div></div>
           <span class="enemy-hp-text">${e.hp}/${e.maxHp}</span>
         </div>
-        <div class="affinity-row">${affs || '<span style="opacity:0.4;font-size:10px">无弱点</span>'}</div>
+        <div class="affinity-row">${affs || '<span style="opacity:0.4;font-size:10px">未揭示</span>'}</div>
         <div class="enemy-intent">${intentIcon} ${intentName}</div>
       `;
       card.onclick = () => {
@@ -423,7 +437,8 @@ export class UI {
   buildCardEl(card, mini) {
     const el = document.createElement("div");
     el.className = `card type-${card.type}`;
-    if (card.type === CARD_TYPE.PERSONA && card.is_reversed) el.classList.add("reversed");
+    const isReversed = card.type === CARD_TYPE.PERSONA && card.is_reversed;
+    if (isReversed) el.classList.add("reversed");
     if (mini) el.classList.add("in-slot");
     el.dataset.id = card.id;
 
@@ -462,8 +477,31 @@ export class UI {
       ? `<div class="card-orient ${card.is_reversed ? "reversed" : ""}">${card.is_reversed ? "▼ REVERSED" : "▲ UPRIGHT"}</div>`
       : "";
 
+    // 卡牌介绍 tooltip 内容
+    let tooltipText = `${card.name}`;
+    if (card.type === CARD_TYPE.PERSONA) {
+      tooltipText += ` (${card.arcana || "?"} ${rankLabel || ""})`;
+      const up = card.skill_upright, rev = card.skill_reversed;
+      tooltipText += `\n▲正位: ${up.name} [${POWER_INFO[up.power].label}] ${up.range === "ALL" ? "全体" : "单体"}`;
+      tooltipText += `\n▼逆位: ${rev.name} [${POWER_INFO[rev.power].label}] ${rev.range === "ALL" ? "全体" : "单体"}`;
+      tooltipText += `\n双击使用当前朝向技能，或加入构筑槽合成`;
+    } else if (skill) {
+      tooltipText += `\n${skill.name} [${powerLabel}] ${skill.range === "ALL" ? "全体" : "单体"}`;
+      tooltipText += `\n小阿尔卡那：双击立即生效`;
+    } else if (card.type === CARD_TYPE.ALL_OUT) {
+      tooltipText += `\n总攻击：全体大伤害\n需敌人全部倒地后获得`;
+    } else if (card.type === CARD_TYPE.THEURGY) {
+      tooltipText += `\n神通法：强力一击\n神通法槽满后可用`;
+    }
+    el.title = tooltipText;
+
+    // 逆位时内部内容再次旋转（便于阅读）
+    const innerWrap = isReversed ? `<div class="card-inner-rotate">` : "";
+    const innerClose = isReversed ? `</div>` : "";
+
     el.innerHTML = `
       ${rankLabel ? `<span class="card-rank rank-${rankLabel}">${rankLabel}</span>` : ""}
+      ${innerWrap}
       <div class="card-art">${card.icon}</div>
       <div class="card-divider"></div>
       <div class="card-name">${card.name}</div>
@@ -473,6 +511,7 @@ export class UI {
         <span>${card.type === CARD_TYPE.PERSONA ? "PERSONA" : card.type}</span>
       </div>
       ${orient}
+      ${innerClose}
     `;
     return el;
   }

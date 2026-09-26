@@ -872,6 +872,32 @@ html, body {
 }
 
 /* ============================================================
+   敌人击杀动画
+   ============================================================ */
+.enemy-card.enemy-dying {
+  animation: enemy-die 0.7s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes enemy-die {
+  0%   { transform: scale(1) rotate(0); opacity: 1; filter: brightness(1); }
+  40%  { transform: scale(1.15) rotate(-5deg); opacity: 1; filter: brightness(2) hue-rotate(180deg); }
+  100% { transform: scale(0.4) rotate(180deg); opacity: 0; filter: brightness(0) blur(4px); }
+}
+
+/* ============================================================
+   逆位卡牌内部文字二次旋转（便于阅读）
+   ============================================================ */
+.card.reversed .card-inner-rotate {
+  transform: rotate(180deg);
+}
+
+/* 卡牌 tooltip 增强（title 属性） */
+.card:hover {
+  cursor: pointer;
+  filter: brightness(1.1);
+}
+
+/* ============================================================
    玩家档案选择界面
    ============================================================ */
 .profile-screen {

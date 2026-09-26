@@ -6,7 +6,7 @@ import {
   EXP_CURVE, MAX_PLAYER_LEVEL, STAT_POINTS_PER_LEVEL,
   STAT_UPGRADE_COSTS, STAT_INCREMENTS,
   STARTING_PERSONAS, RANK,
-} from "./data.js?v=12";
+} from "./data.js?v=13";
 
 const SAVE_KEY = "persona_concerto_save_v1";        // 旧版单存档（迁移用）
 const PROFILES_KEY = "persona_concerto_profiles_v1"; // 多玩家档案（每个玩家独立存档）
@@ -157,8 +157,8 @@ export class MetaState {
     const lvl = this.bonusStats[stat] ?? 0;
     // 难度压缩后的基础值
     if (stat === "critRate") return { base: "3%", bonus: `+${(lvl * inc * 100).toFixed(0)}%`, total: `${((0.03 + lvl * inc) * 100).toFixed(0)}%` };
-    if (stat === "maxHp") return { base: "600", bonus: `+${lvl * inc}`, total: String(600 + lvl * inc) };
-    if (stat === "attack") return { base: "90", bonus: `+${lvl * inc}`, total: String(90 + lvl * inc) };
+    if (stat === "maxHp") return { base: "300", bonus: `+${lvl * inc}`, total: String(300 + lvl * inc) };
+    if (stat === "attack") return { base: "18", bonus: `+${lvl * inc}`, total: String(18 + lvl * inc) };
     if (stat === "maxReversed") return { base: "2", bonus: `+${lvl}`, total: String(2 + lvl) };
     if (stat === "theurgyMax") return { base: "2", bonus: `+${lvl}`, total: String(2 + lvl) };
     return { base: "0", bonus: "", total: "0" };
@@ -169,8 +169,8 @@ export class MetaState {
     const s = this.bonusStats;
     const arcana = ARCANA[this.arcanaId];
     const arcanaLv = this.getArcanaLevel(this.arcanaId);
-    let attack = 90 + (s.attack ?? 0) * STAT_INCREMENTS.attack;
-    let maxHp = 600 + (s.maxHp ?? 0) * STAT_INCREMENTS.maxHp;
+    let attack = 18 + (s.attack ?? 0) * STAT_INCREMENTS.attack;
+  let maxHp = 300 + (s.maxHp ?? 0) * STAT_INCREMENTS.maxHp;
     let critRate = 0.03 + (s.critRate ?? 0) * STAT_INCREMENTS.critRate;
     let maxReversed = 2 + (s.maxReversed ?? 0);
     let theurgyMax = 2 + (s.theurgyMax ?? 0) + this.bonusTheurgyMax;

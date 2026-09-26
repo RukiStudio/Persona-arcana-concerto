@@ -4,7 +4,7 @@
 import {
   ELEMENT, POWER, POWER_MULTIPLIER, AFFINITY, AFFINITY_MULTIPLIER,
   RANGE, CARD_TYPE,
-} from "./data.js?v=12";
+} from "./data.js?v=13";
 
 /**
  * 获取卡牌当前生效的技能数据

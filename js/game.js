@@ -6,8 +6,8 @@ import {
   CARD_TYPE, RANK, RANK_LABEL, POWER, RANGE, ELEMENT, AFFINITY,
   STARTING_PERSONAS,
   nextId,
-} from "./data.js?v=12";
-import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=12";
+} from "./data.js?v=13";
+import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=13";
 
 // 卡牌工厂
 function makePersonaCard(key) {
@@ -48,8 +48,8 @@ export class Game {
     this.meta = meta || null;
     this.stageIndex = 0;
     this.arcana = (meta && meta.getArcana()) || ARCANA.FOOL;
-    // 从 meta 获取战斗属性（难度压缩后基础值 600/90/0.03/5/2）
-    const ms = meta ? meta.getBattlePlayerStats() : { attack: 90, maxHp: 600, critRate: 0.03, maxReversed: 2, theurgyMax: 2, handLimit: 5, arcanaLv: 1 };
+    // 从 meta 获取战斗属性（难度压缩后基础值 300/18/0.03/5/2）
+    const ms = meta ? meta.getBattlePlayerStats() : { attack: 18, maxHp: 300, critRate: 0.03, maxReversed: 2, theurgyMax: 2, handLimit: 5, arcanaLv: 1 };
     this.arcanaLv = ms.arcanaLv || 1;
     this.player = {
       maxHp: ms.maxHp, hp: ms.maxHp, attack: ms.attack,
@@ -81,6 +81,7 @@ export class Game {
     this.firstComposeThisTurn = false;
     this.bonusCards = []; // 升级解锁的高阶卡 key（牌库重建时保留）
     this.supportBuffs = {}; // 辅助技能的临时 buff（tarukaja, rakukaja 等）
+    this.allowPersonaRefresh = true; // 牌库重建时是否补充人格面具卡（首次或升级后）
   }
 
   on(fn) { this.listeners.push(fn); }
@@ -97,18 +98,21 @@ export class Game {
     // 空池回退到初始人格面具
     if (!pool || pool.length === 0) pool = STARTING_PERSONAS;
     const deck = [];
-    // 人格面具卡：每个 2 张（限制总数避免牌库过大）
-    const usePool = pool.length > 10 ? pool.slice(0, 10) : pool;
-    usePool.forEach(key => { deck.push(makePersonaCard(key)); deck.push(makePersonaCard(key)); });
-    // 小阿尔卡那
+    // 人格面具卡：首次建造每个 1 张；再次重建时只补充小阿尔卡那（避免无限刷新强力技能）
+    if (this.allowPersonaRefresh) {
+      const usePool = pool.length > 10 ? pool.slice(0, 10) : pool;
+      usePool.forEach(key => deck.push(makePersonaCard(key)));
+      this.allowPersonaRefresh = false; // 下次重建不再补充人格面具
+    }
+    // 升级解锁的高阶卡（重建时保留）
+    this.bonusCards.forEach(key => deck.push(makePersonaCard(key)));
+    // 小阿尔卡那（每次重建都补充）
     deck.push(makeMinorCard("wand"));
     deck.push(makeMinorCard("cup")); deck.push(makeMinorCard("cup"));
     deck.push(makeMinorCard("pentacle")); deck.push(makeMinorCard("pentacle"));
     // 宝剑
     deck.push(makeMinorCard("sword_sm")); deck.push(makeMinorCard("sword_md"));
     if (this.deckLevel >= 3) deck.push(makeMinorCard("sword_lg"));
-    // 升级解锁的高阶卡（重建时保留）
-    this.bonusCards.forEach(key => deck.push(makePersonaCard(key)));
     this.deck = this.shuffle(deck);
   }
 
@@ -170,8 +174,16 @@ export class Game {
     const key = highCards[Math.floor(Math.random() * highCards.length)];
     this.bonusCards.push(key);
     this.deck.push(makePersonaCard(key));
+    // 升级后允许下次重建时补充本阵营低阶人格面具卡
+    this.allowPersonaRefresh = true;
+    // 即时补充一张本阵营随机低阶人格面具
+    const pool = (this.arcana.persona_pool || []).filter(k => this.meta ? this.meta.isUnlocked(k) : true);
+    if (pool.length > 0) {
+      const lowKey = pool[Math.floor(Math.random() * pool.length)];
+      this.deck.push(makePersonaCard(lowKey));
+    }
     this.shuffle(this.deck);
-    this.log(`牌库升至 Lv.${this.deckLevel}！解锁 ${PERSONAS[key].name}，手牌上限+1`, "gold");
+    this.log(`牌库升至 Lv.${this.deckLevel}！解锁 ${PERSONAS[key].name}，手牌上限+1，补充人格面具`, "gold");
     this.emit("state");
     return true;
   }
@@ -206,6 +218,7 @@ export class Game {
 
     this.bonusCards = []; // 每关重置高阶卡解锁
     this.supportBuffs = {}; // 重置辅助 buff
+    this.allowPersonaRefresh = true; // 关卡开始允许补充人格面具卡
     this.buildDeck();
     this.theurgy = 0;
     this.theurgyUses = 0;
@@ -230,6 +243,7 @@ export class Game {
         id: `e${i}_${waveIdx}`, key: k, name: e.name, icon: e.icon,
         level: e.level, maxHp: e.hp, hp: e.hp,
         affinities: { ...e.affinities },
+        revealedAffinities: new Set(), // 受对应属性伤害后才揭示
         skills: e.skills, attack: e.attack,
         is_knocked_down: false, intent: null,
       };
@@ -500,6 +514,13 @@ export class Game {
     this.hand.splice(idx, 1);
     this.log(`⚔ 总攻击发动！⚔`, "gold");
     this.executeSkill(card.skill, card);
+    // 总攻击结束后立即解除所有敌人倒地状态，避免无限总攻击链
+    this.enemies.forEach(e => { if (e.hp > 0) e.is_knocked_down = false; });
+    // 教程：总攻击推进 step 5→6
+    if (this.isTutorial && this.tutorialStep === 5) {
+      this.tutorialStep = 6;
+      this.emit("tutorial", { step: 6 });
+    }
     this.emit("state");
     // 总攻击可能击杀敌人，需检查战斗结束
     this.checkBattleEnd();
@@ -641,7 +662,21 @@ export class Game {
       finalDmg = Math.round(finalDmg * 1.5);
     }
     enemy.hp = Math.max(0, enemy.hp - finalDmg);
-    this.emit("enemyHit", { enemy, dmg: finalDmg, crit: result.isCrit, affinity: result.affinity });
+    // 揭示敌人对应属性的相性
+    if (skill && skill.element) {
+      if (!enemy.revealedAffinities) enemy.revealedAffinities = new Set();
+      enemy.revealedAffinities.add(skill.element);
+    }
+    this.emit("enemyHit", { enemy, dmg: finalDmg, crit: result.isCrit, affinity: result.affinity, element: skill?.element });
+    // 教程：首次造成弱点伤害推进 step 4→5（提示总攻击）
+    if (this.isTutorial && this.tutorialStep === 4 && result.affinity === AFFINITY.WEAK) {
+      this.tutorialStep = 5;
+      this.emit("tutorial", { step: 5 });
+    }
+    // 敌人被击杀：触发击杀动画 + 揭示属性相性（全部显示）
+    if (enemy.hp <= 0) {
+      this.emit("enemyDeath", { enemy });
+    }
 
     if (result.damage === 0 && result.affinity === AFFINITY.NULL) {
       this.log(`${enemy.name} 无效化了攻击`, "info");
@@ -735,7 +770,7 @@ export class Game {
         this.hand = this.hand.filter(c => c.type !== CARD_TYPE.ALL_OUT);
         this.firstComposeThisTurn = true;
         this.rollEnemyIntents();
-        this.log(`▶ 第 ${this.waveIndex + 1}/${this.waves.length} 波来袭！`, "info");
+        this.log(`▶ 新的暗影将你包围了！（第 ${this.waveIndex + 1}/${this.waves.length} 波）`, "info");
         this.emit("waveStart", { waveIndex: this.waveIndex, total: this.waves.length });
         this.emit("state");
       }
@@ -761,6 +796,10 @@ export class Game {
       // 不再累加到 player.money（局内资金仅本局有效）
     } else {
       this.log(`💀 战斗失败...`, "dmg");
+    }
+    // 教程胜利后标记 step 7（返回 Hub 时由 UI 显示局外养成引导）
+    if (victory && this.isTutorial && this.tutorialStep === 6) {
+      this.tutorialStep = 7;
     }
     this.emit("battleEnd", { victory });
   }
