@@ -1,0 +1,137 @@
+﻿// ============================================================
+// 核心规则引擎：技能合成、相性、伤害计算
+// ============================================================
+import {
+  ELEMENT, POWER, POWER_MULTIPLIER, AFFINITY, AFFINITY_MULTIPLIER,
+  RANGE, CARD_TYPE,
+} from "./data.js?v=4";
+
+/**
+ * 获取卡牌当前生效的技能数据
+ * - 人格面具卡：根据正逆位返回对应技能
+ * - 宝剑/神通法/总攻击：返回固定技能
+ */
+export function getActiveSkill(card) {
+  if (card.type === CARD_TYPE.PERSONA) {
+    return card.is_reversed ? card.skill_reversed : card.skill_upright;
+  }
+  return card.skill;
+}
+
+/**
+ * 叠牌合成算法（严格按计划书实现）
+ * 规则：
+ *  1. 同属性 → 力度叠加（上限 XH=5）
+ *  2. 异属性 → 改变属性，力度叠加
+ *  3. 范围由最后一张卡决定
+ *  4. 万能属性同时改变属性和力度
+ */
+export function composeSkill(cards) {
+  if (!cards || cards.length === 0) return null;
+
+  const result = { element: null, power: 0, range: null };
+  const first = getActiveSkill(cards[0]);
+  result.element = first.element;
+  result.power = first.power;
+  result.range = first.range;
+
+  for (let i = 1; i < cards.length; i++) {
+    const skill = getActiveSkill(cards[i]);
+
+    // 规则4：万能属性同时改变属性和力度
+    if (skill.element === ELEMENT.ALMIGHTY) {
+      result.element = ELEMENT.ALMIGHTY;
+      result.power = Math.min(result.power + skill.power, POWER.XH);
+      result.range = skill.range;
+      continue;
+    }
+
+    // 规则2 & 1：异属性改变属性；同属性力度叠加（两者力度都叠加）
+    if (skill.element !== result.element) {
+      result.element = skill.element;
+    }
+    result.power = Math.min(result.power + skill.power, POWER.XH);
+
+    // 规则3：范围由最后一张卡决定
+    result.range = skill.range;
+  }
+
+  return result;
+}
+
+/**
+ * 计算合成技能的基础伤害（不含相性/圣杯/倒地/暴击）
+ */
+export function calcBaseDamage(skill, player) {
+  const atk = player.attack;
+  const mult = POWER_MULTIPLIER[skill.power] ?? 1;
+  // 阵营增益
+  let arcanaBonus = 1;
+  if (player.arcanaBonus === "FIRE_DMG" && skill.element === ELEMENT.FIRE) arcanaBonus = 1.2;
+  return Math.round(atk * mult * arcanaBonus);
+}
+
+/**
+ * 获取敌人对某属性的相性
+ */
+export function getAffinity(element, enemy) {
+  return enemy.affinities[element] ?? AFFINITY.NORMAL;
+}
+
+/**
+ * 伤害计算（计划书公式）
+ *  final = base × affinity × cup × knockdown × crit
+ *  REPEL: 反噬玩家（返回负数表示反弹）
+ *  DRAIN: 转化为治疗（返回负数表示吸收）
+ *  NULL: 0 伤害
+ */
+export function calculateDamage(skill, player, enemy) {
+  const base = calcBaseDamage(skill, player);
+  const affinity = getAffinity(skill.element, enemy);
+  const mult = AFFINITY_MULTIPLIER[affinity];
+
+  // 恢复/辅助技能不触发相性
+  if (skill.element === ELEMENT.HEAL || skill.element === ELEMENT.SUPPORT) {
+    return { damage: base, affinity: AFFINITY.NORMAL, isCrit: false, isHeal: true };
+  }
+
+  // NULL：0 伤害
+  if (affinity === AFFINITY.NULL) {
+    return { damage: 0, affinity, isCrit: false };
+  }
+
+  const cupMult = 1 + 0.5 * (player.cupStack || 0);
+  const kdMult = enemy.is_knocked_down ? 1.25 : 1.0;
+  const isCrit = Math.random() < (player.critRate || 0);
+  const critMult = isCrit ? 1.5 : 1.0;
+
+  // REPEL：反弹给玩家
+  if (affinity === AFFINITY.REPEL) {
+    const reflect = Math.round(base * cupMult * kdMult * critMult);
+    return { damage: reflect, affinity, isCrit, isRepel: true };
+  }
+
+  // DRAIN：敌人吸收为治疗
+  if (affinity === AFFINITY.DRAIN) {
+    const drained = Math.round(base * cupMult * kdMult * critMult);
+    return { damage: drained, affinity, isCrit, isDrain: true };
+  }
+
+  const final = Math.round(base * mult * cupMult * kdMult * critMult);
+  return { damage: final, affinity, isCrit };
+}
+
+/**
+ * 生成合成结果的描述文本（用于贡献明细条）
+ */
+export function describeCompose(cards) {
+  if (!cards.length) return "";
+  return cards.map(c => {
+    const s = getActiveSkill(c);
+    return `[${s.element.slice(0,4)} ${POWER_LABEL(s.power)}]`;
+  }).join(" → ");
+}
+
+function POWER_LABEL(p) {
+  return { 1: "SM", 2: "MD", 3: "LG", 4: "HV", 5: "XH" }[p];
+}
