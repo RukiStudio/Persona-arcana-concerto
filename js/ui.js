@@ -4,8 +4,8 @@
 import {
   ELEMENT, ELEMENT_INFO, POWER_INFO, RANK_LABEL, CARD_TYPE, AFFINITY,
   ENVIRONMENT_INFO,
-} from "./data.js?v=13";
-import { getActiveSkill, calcBaseDamage } from "./core.js?v=13";
+} from "./data.js?v=14";
+import { getActiveSkill, calcBaseDamage } from "./core.js?v=14";
 
 export class UI {
   constructor(game, onReturnHub) {
@@ -36,13 +36,13 @@ export class UI {
   // 教程引导：根据 step 显示气泡提示
   onTutorial(data) {
     const tips = {
-      1: { title: "① 抽 取 卡 牌", body: "点击右下「DRAW」按钮花费 ¥ 抽牌。\n每回合自动发牌，但额外抽牌能加快集火。", target: "#btn-draw" },
-      2: { title: "② 出 牌 / 构 筑", body: "双击手牌可立即使用人格面具技能；\n或将人格面具卡拖入下方 5 个构筑槽合成更强技能。\n★ 构筑规则：2~5 张同阵营人格面具卡，按总力度×等级计算伤害", target: "#compose-slots" },
-      3: { title: "③ 确 认 构 筑", body: "放入 2~5 张人格面具卡后，点击「CONFIRM」释放合成技能攻击敌人。\n★ 弱点机制：使用敌人▼属性攻击可造成双倍伤害并令其倒地\n★ 倒地：全部敌人倒地后可发动总攻击", target: "#btn-confirm" },
-      4: { title: "④ 结 束 回 合", body: "行动完毕后点击「END TURN」结束本回合，\n敌人将发动攻击。循环直至击败所有敌人。", target: "#btn-end" },
-      5: { title: "⑤ 总 攻 击", body: "敌人全部倒地后，手牌中会出现「总攻击」卡。\n双击它可对全体敌人造成超大伤害！\n但总攻击后会解除所有倒地状态，请把握时机。", target: "#hand-area" },
-      6: { title: "⑥ 战 斗 胜 利", body: "击败所有敌人即可获胜，返回天鹅绒房间。\n获得 ◈ 精魄（局外货币）和经验值。", target: null },
-      7: { title: "⑦ 局 外 养 成", body: "★ 局外养成系统：\n• 人格面具图鉴：查看已收集的人格面具\n• 合体召唤：用 2 张人格面具合成新的（消耗精魄）\n• 属性强化：用属性点提升基础属性\n• 阵营选择：切换阵营并升级特性\n• 天鹅绒商店：购买精魄包与扩展\n★ 多档案存档：每个玩家独立进度", target: ".hub-nav" },
+      1: { title: "① 构 筑 卡 牌", body: "★ 构筑规则：将人格面具卡拖入下方 5 个构筑槽，\n合成更强大的技能（按总力度×等级计算伤害）。\n\n现在请将「软泥怪」和「小宝剑」拖入构筑槽", target: "#compose-slots" },
+      2: { title: "② 确 认 构 筑", body: "卡牌已入构筑槽！点击「CONFIRM」释放合成技能攻击敌人。\n★ 注意敌人属性相性（受对应属性伤害后才会揭示）", target: "#btn-confirm" },
+      3: { title: "③ 抽 取 卡 牌", body: "已造成伤害！现在点击「DRAW」抽一张牌。\n★ 抽到的卡牌将决定下一步策略", target: "#btn-draw" },
+      4: { title: "④ 翻 转 俄 耳 甫 斯", body: "★ 你抽到了俄耳甫斯！其逆位技能是「Agi（火焰）」\n点击俄耳甫斯选中后，按「FLIP」按钮翻转为逆位\n★ 敌人有火焰弱点（▼FIRE），逆位俄耳甫斯可造成双倍伤害并使其倒地", target: "#btn-flip" },
+      5: { title: "⑤ 打 出 俄 耳 甫 斯", body: "双击逆位的俄耳甫斯，直接释放其火焰技能！\n★ 弱点命中将显示「WEAK!」并使敌人倒地\n★ 全部敌人倒地后可发动总攻击", target: "#hand-area" },
+      6: { title: "⑥ 总 攻 击", body: "敌人已倒地！双击手牌中的「总攻击」卡，\n对全体敌人造成超大伤害！\n★ 总攻击有回合冷却，使用后解除倒地状态", target: "#hand-area" },
+      7: { title: "⑦ 战 斗 胜 利", body: "击败所有敌人即可获胜！\n返回天鹅绒房间查看局外养成系统……", target: null },
     };
     const tip = tips[data.step];
     if (!tip) { this.hideTutorialTip(); return; }
@@ -111,7 +111,26 @@ export class UI {
   }
 
   onWaveStart(data) {
-    this.addLog(`第 ${data.waveIndex + 1}/${data.total} 波来袭！`, "dmg");
+    this.addLog(`▶ 新的暗影将你包围了！（第 ${data.waveIndex + 1}/${data.total} 波）`, "dmg");
+    this.showFlashText("新的暗影将你包围了！", "var(--c-red)", 1600);
+  }
+
+  // 中央大字弹窗（WEAK/CRIT/波次切换等）
+  showFlashText(text, color, duration = 1100) {
+    let el = document.getElementById("flash-text");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "flash-text";
+      el.className = "flash-text";
+      document.body.appendChild(el);
+    }
+    el.textContent = text;
+    el.style.color = color;
+    el.classList.remove("show");
+    void el.offsetWidth; // 触发重排重启动画
+    el.classList.add("show");
+    clearTimeout(this._flashTimer);
+    this._flashTimer = setTimeout(() => el.classList.remove("show"), duration);
   }
 
   bindStatic() {
@@ -411,7 +430,13 @@ export class UI {
       this.game.useTheurgy(card);
     } else {
       // 人格面具 / 宝剑：双击直接加入构筑槽
-      this.game.addToCompose(card.id);
+      // 教程 step 5：双击逆位俄耳甫斯直接释放技能（火焰弱点）
+      if (this.game.isTutorial && this.game.tutorialStep === 5
+          && card.cardKey === "orpheus" && card.is_reversed) {
+        this.game.usePersonaDirect(card);
+      } else {
+        this.game.addToCompose(card.id);
+      }
     }
   }
 
@@ -524,6 +549,12 @@ export class UI {
     if (!cardEl) return;
     cardEl.classList.add("hit-flash");
     setTimeout(() => cardEl.classList.remove("hit-flash"), 300);
+    // 弱点命中弹窗
+    if (affinity === AFFINITY.WEAK && dmg > 0) {
+      this.showFlashText("WEAK!", "var(--c-gold)");
+    } else if (crit && dmg > 0) {
+      this.showFlashText("CRIT!", "var(--c-gold)");
+    }
     if (dmg > 0) {
       let color = "var(--c-red)";
       if (crit) color = "var(--c-gold)";

@@ -6,8 +6,8 @@ import {
   CARD_TYPE, RANK, RANK_LABEL, POWER, RANGE, ELEMENT, AFFINITY,
   STARTING_PERSONAS,
   nextId,
-} from "./data.js?v=13";
-import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=13";
+} from "./data.js?v=14";
+import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=14";
 
 // 卡牌工厂
 function makePersonaCard(key) {
@@ -82,6 +82,7 @@ export class Game {
     this.bonusCards = []; // 升级解锁的高阶卡 key（牌库重建时保留）
     this.supportBuffs = {}; // 辅助技能的临时 buff（tarukaja, rakukaja 等）
     this.allowPersonaRefresh = true; // 牌库重建时是否补充人格面具卡（首次或升级后）
+    this.allOutUsedThisTurn = false; // 一回合内总攻击冷却
   }
 
   on(fn) { this.listeners.push(fn); }
@@ -151,10 +152,10 @@ export class Game {
     this.player.drawCost *= 2;
     this.drawCard();
     this.log(`花费 ¥${cost} 抽取一张牌`, "gold");
-    // 教程：抽牌推进 step 1→2
-    if (this.isTutorial && this.tutorialStep === 1) {
-      this.tutorialStep = 2;
-      this.emit("tutorial", { step: 2 });
+    // 教程：抽牌推进 step 3→4（此时应抽到俄耳甫斯）
+    if (this.isTutorial && this.tutorialStep === 3) {
+      this.tutorialStep = 4;
+      this.emit("tutorial", { step: 4 });
     }
     this.emit("state");
     return true;
@@ -219,7 +220,18 @@ export class Game {
     this.bonusCards = []; // 每关重置高阶卡解锁
     this.supportBuffs = {}; // 重置辅助 buff
     this.allowPersonaRefresh = true; // 关卡开始允许补充人格面具卡
-    this.buildDeck();
+    if (this.isTutorial) {
+      // 教程关：固定牌库（pop 顺序：软泥怪 → 小宝剑 → 俄耳甫斯）
+      this.deck = [
+        makeMinorCard("pentacle"),
+        makeMinorCard("cup"),
+        makePersonaCard("orpheus"),
+        makeMinorCard("sword_sm"),
+        makePersonaCard("slime"),
+      ];
+    } else {
+      this.buildDeck();
+    }
     this.theurgy = 0;
     this.theurgyUses = 0;
     this.player.hp = this.player.maxHp;
@@ -230,6 +242,7 @@ export class Game {
     if (this.isTutorial) {
       this.tutorialStep = 1;
       this.emit("tutorial", { step: 1 });
+      this.log("【教程】将软泥怪与小宝剑拖入下方构筑槽，尝试构筑合成技能", "info");
     }
     this.startTurn();
   }
@@ -259,6 +272,7 @@ export class Game {
     this.player.cupStack = 0;
     this.player.drawCost = 60;
     this.supportBuffs = {}; // 每回合清除辅助 buff
+    this.allOutUsedThisTurn = false; // 重置总攻击冷却
     // 回合资金：80 + 回合数×15
     let income = 80 + this.turn * 15;
     // 教皇阵营：按等级 +¥30/+¥60/+¥80（Lv3 起手额外 +¥100）
@@ -286,7 +300,15 @@ export class Game {
     if (this.player.arcanaBonus === "EXTRA_DRAW") {
       drawNum += [1, 2, 2][this.arcanaLv - 1] || 1;
     }
-    this.drawCards(drawNum);
+    // 教程：第一回合固定发软泥怪 + 小宝剑；第二回合后正常发牌
+    if (this.isTutorial && this.turn === 1) {
+      this.drawCards(2); // 抽软泥怪 + 小宝剑
+    } else if (this.isTutorial && this.turn === 2) {
+      // 第二回合：保留手牌 + 抽俄耳甫斯（已在牌库中）
+      this.drawCards(1);
+    } else {
+      this.drawCards(drawNum);
+    }
 
     // 清除总攻击卡
     this.hand = this.hand.filter(c => c.type !== CARD_TYPE.ALL_OUT);
@@ -418,6 +440,11 @@ export class Game {
     }
     card.is_reversed = !card.is_reversed;
     this.log(`${card.name} → ${card.is_reversed ? "逆位" : "正位"}`, "info");
+    // 教程：翻转俄耳甫斯推进 step 4→5
+    if (this.isTutorial && this.tutorialStep === 4 && card.cardKey === "orpheus" && card.is_reversed) {
+      this.tutorialStep = 5;
+      this.emit("tutorial", { step: 5 });
+    }
     this.emit("state");
     return true;
   }
@@ -440,10 +467,10 @@ export class Game {
 
     this.hand.splice(idx, 1);
     this.composeSlots.push(card);
-    // 教程：首次拖入构筑推进 step 2→3
-    if (this.isTutorial && this.tutorialStep === 2) {
-      this.tutorialStep = 3;
-      this.emit("tutorial", { step: 3 });
+    // 教程：首次拖入构筑推进 step 1→2
+    if (this.isTutorial && this.tutorialStep === 1) {
+      this.tutorialStep = 2;
+      this.emit("tutorial", { step: 2 });
     }
     this.emit("state");
     return true;
@@ -509,21 +536,47 @@ export class Game {
 
   // 总攻击
   useAllOut(card) {
+    // 一回合内总攻击冷却
+    if (this.allOutUsedThisTurn) {
+      this.log("本回合已使用过总攻击，需下回合才能再次发动", "info");
+      return;
+    }
     const idx = this.hand.findIndex(c => c.id === card.id);
     if (idx < 0) return;
     this.hand.splice(idx, 1);
+    this.allOutUsedThisTurn = true; // 标记本回合已使用
     this.log(`⚔ 总攻击发动！⚔`, "gold");
     this.executeSkill(card.skill, card);
     // 总攻击结束后立即解除所有敌人倒地状态，避免无限总攻击链
     this.enemies.forEach(e => { if (e.hp > 0) e.is_knocked_down = false; });
-    // 教程：总攻击推进 step 5→6
+    // 教程：总攻击推进 step 6→7
+    if (this.isTutorial && this.tutorialStep === 6) {
+      this.tutorialStep = 7;
+      this.emit("tutorial", { step: 7 });
+    }
+    this.emit("state");
+    // 总攻击可能击杀敌人，需检查战斗结束
+    this.checkBattleEnd();
+  }
+
+  // 教程专用：直接打出人格面具技能（不进构筑槽）
+  usePersonaDirect(card) {
+    if (this.state !== "PLAYER_ACTION") return false;
+    const idx = this.hand.findIndex(c => c.id === card.id);
+    if (idx < 0) return false;
+    const skill = getActiveSkill(card);
+    if (!skill) return false;
+    this.hand.splice(idx, 1);
+    this.log(`使用 ${card.name}（${card.is_reversed ? "逆位" : "正位"}）：${skill.name}`, "info");
+    this.executeSkill(skill, card);
+    // 教程：打出俄耳甫斯推进 step 5→6（敌人倒地后才能用总攻击）
     if (this.isTutorial && this.tutorialStep === 5) {
       this.tutorialStep = 6;
       this.emit("tutorial", { step: 6 });
     }
     this.emit("state");
-    // 总攻击可能击杀敌人，需检查战斗结束
     this.checkBattleEnd();
+    return true;
   }
 
   // 确认构筑 → 打出合成技能
@@ -547,10 +600,10 @@ export class Game {
 
     this.composeSlots = []; // 消耗卡牌
     this.executeSkill(skill, null);
-    // 教程：首次构筑完成推进 step 3→4
-    if (this.isTutorial && this.tutorialStep === 3) {
-      this.tutorialStep = 4;
-      this.emit("tutorial", { step: 4 });
+    // 教程：首次构筑完成推进 step 2→3
+    if (this.isTutorial && this.tutorialStep === 2) {
+      this.tutorialStep = 3;
+      this.emit("tutorial", { step: 3 });
     }
     this.emit("state");
     this.checkBattleEnd();
@@ -668,11 +721,6 @@ export class Game {
       enemy.revealedAffinities.add(skill.element);
     }
     this.emit("enemyHit", { enemy, dmg: finalDmg, crit: result.isCrit, affinity: result.affinity, element: skill?.element });
-    // 教程：首次造成弱点伤害推进 step 4→5（提示总攻击）
-    if (this.isTutorial && this.tutorialStep === 4 && result.affinity === AFFINITY.WEAK) {
-      this.tutorialStep = 5;
-      this.emit("tutorial", { step: 5 });
-    }
     // 敌人被击杀：触发击杀动画 + 揭示属性相性（全部显示）
     if (enemy.hp <= 0) {
       this.emit("enemyDeath", { enemy });
@@ -798,8 +846,8 @@ export class Game {
       this.log(`💀 战斗失败...`, "dmg");
     }
     // 教程胜利后标记 step 7（返回 Hub 时由 UI 显示局外养成引导）
-    if (victory && this.isTutorial && this.tutorialStep === 6) {
-      this.tutorialStep = 7;
+    if (victory && this.isTutorial && this.tutorialStep === 7) {
+      this.tutorialStep = 8;
     }
     this.emit("battleEnd", { victory });
   }

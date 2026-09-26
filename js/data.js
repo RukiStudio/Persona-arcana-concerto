@@ -185,6 +185,7 @@ export const SKILLS = {
   blade_of_fury: { name: "Blade of Fury", element: ELEMENT.PHYSICAL, power: POWER.LG, range: RANGE.ALL },
   gigantomachia: { name: "Gigantomachia", element: ELEMENT.PHYSICAL, power: POWER.HV, range: RANGE.ALL },
   god_hand: { name: "God Hand", element: ELEMENT.PHYSICAL, power: POWER.XH, range: RANGE.SINGLE },
+  armageddon: { name: "Armageddon", element: ELEMENT.ALMIGHTY, power: POWER.UL, range: RANGE.ALL },
   brave_blade: { name: "Brave Blade", element: ELEMENT.PHYSICAL, power: POWER.LG, range: RANGE.SINGLE },
   // 火焰
   agi: { name: "Agi", element: ELEMENT.FIRE, power: POWER.SM, range: RANGE.SINGLE },
@@ -712,7 +713,7 @@ export const MINOR_CARDS = {
 // 难度强化：HP ×1.3、attack ×1.25；shadow_priest/stone_golem/reaper 加恢复技能
 export const ENEMIES = {
   tutorial_shadow: {
-    name: "虚弱暗影", icon: "👤", level: 1, hp: 60,
+    name: "虚弱暗影", icon: "👤", level: 1, hp: 280,
     affinities: { PHYSICAL: AFFINITY.NORMAL, FIRE: AFFINITY.WEAK, ICE: AFFINITY.NORMAL, WIND: AFFINITY.NORMAL, ELEC: AFFINITY.NORMAL, ALMIGHTY: AFFINITY.NORMAL },
     skills: [{ name: "虚弱攻击", element: ELEMENT.PHYSICAL, power: POWER.SM, range: RANGE.SINGLE }],
     attack: 8,

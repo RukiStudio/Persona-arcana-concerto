@@ -1,10 +1,10 @@
 ﻿// ============================================================
 // 游戏入口：玩家档案选择、初始化、Hub ↔ 战斗切换
 // ============================================================
-import { Game } from "./game.js?v=13";
-import { UI } from "./ui.js?v=13";
-import { MetaState } from "./meta.js?v=13";
-import { Hub } from "./hub.js?v=13";
+import { Game } from "./game.js?v=14";
+import { UI } from "./ui.js?v=14";
+import { MetaState } from "./meta.js?v=14";
+import { Hub } from "./hub.js?v=14";
 
 // 等比缩放适配
 function fitScreen() {
@@ -96,7 +96,7 @@ function showHub() {
   document.getElementById("game-root").classList.add("hidden");
   if (hub) hub.render();
   // 教程胜利后返回 Hub：显示局外养成引导
-  if (game && game.isTutorial && game.tutorialStep === 7) {
+  if (game && game.isTutorial && game.tutorialStep === 8) {
     const tip = {
       title: "⑦ 局 外 养 成",
       body: "★ 局外养成系统：\n• 人格面具图鉴：查看已收集的人格面具\n• 合体召唤：用 2 张人格面具合成新的（消耗精魄）\n• 属性强化：用属性点提升基础属性\n• 阵营选择：切换阵营并升级特性\n• 天鹅绒商店：购买精魄包与扩展\n★ 多档案存档：每个玩家独立进度",
