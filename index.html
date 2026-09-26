@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>女神异闻录：阿尔卡那协奏 - 文字版</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+  background: #0d0d1a;
+  color: #e0e0e0;
+  min-height: 100vh;
+  padding: 12px;
+}
+.container { max-width: 900px; margin: 0 auto; }
+
+/* 标题 */
+.title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: bold;
+  color: #ff4d6d;
+  text-shadow: 0 0 10px rgba(255,77,109,0.5);
+  margin-bottom: 8px;
+  letter-spacing: 2px;
+}
+
+/* 面板通用 */
+.panel {
+  background: #1a1a2e;
+  border: 1px solid #3a3a5c;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.panel-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #ff4d6d;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #3a3a5c;
+  padding-bottom: 4px;
+}
+
+/* 状态栏 */
+.status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 14px;
+  background: linear-gradient(90deg, #16213e, #1a1a2e);
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #0f3460;
+  margin-bottom: 10px;
+}
+.status-bar .item { display: flex; align-items: center; gap: 4px; }
+.gauge {
+  display: inline-block;
+  width: 80px;
+  height: 14px;
+  background: #2a2a4a;
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.gauge-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6b6b, #ffd93d);
+  transition: width 0.3s;
+}
+
+/* 敌人区 */
+.enemy-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.enemy-card {
+  background: #2a1a2e;
+  border: 2px solid #8b0000;
+  border-radius: 8px;
+  padding: 10px;
+  position: relative;
+}
+.enemy-card.dead { opacity: 0.4; border-color: #555; }
+.enemy-card.knocked { border-color: #ffd93d; box-shadow: 0 0 8px rgba(255,217,61,0.5); }
+.enemy-name { font-weight: bold; color: #ff6b6b; font-size: 15px; }
+.enemy-hp-bar {
+  height: 12px;
+  background: #444;
+  border-radius: 3px;
+  margin: 6px 0;
+  overflow: hidden;
+}
+.enemy-hp-fill { height: 100%; background: linear-gradient(90deg, #ff4d6d, #ff8fa3); transition: width 0.3s; }
+.enemy-info { font-size: 12px; color: #aaa; margin-top: 4px; }
+.affinity-tag { display: inline-block; margin: 2px; padding: 1px 6px; background: #3a2a4e; border-radius: 3px; font-size: 11px; }
+.intent { font-size: 12px; color: #ffd93d; margin-top: 4px; }
+
+/* 构筑槽 */
+.slots { display: flex; gap: 8px; flex-wrap: wrap; }
+.slot {
+  flex: 1;
+  min-width: 120px;
+  background: #16213e;
+  border: 2px dashed #3a3a5c;
+  border-radius: 6px;
+  padding: 8px;
+  text-align: center;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.slot.filled { border-style: solid; border-color: #4ecdc4; background: #1a2e3e; }
+.slot-label { font-size: 11px; color: #888; }
+.slot-card { font-size: 13px; font-weight: bold; }
+.slot-skill { font-size: 11px; color: #aaa; margin-top: 2px; }
+
+/* 预览 */
+.preview {
+  background: #1e3a5f;
+  border: 1px solid #4ecdc4;
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: 8px;
+}
+.preview-row { font-size: 13px; margin: 2px 0; }
+
+/* 玩家状态 */
+.player-status { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; }
+.hp-bar {
+  width: 180px;
+  height: 14px;
+  background: #333;
+  border-radius: 3px;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+}
+.hp-fill { height: 100%; background: linear-gradient(90deg, #51cf66, #40c057); transition: width 0.3s; }
+
+/* 手牌 */
+.hand-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+.card {
+  background: #1a1a2e;
+  border: 1px solid #4a4a7c;
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+.card:hover { border-color: #ff4d6d; transform: translateY(-2px); }
+.card.selected { border-color: #ffd93d; background: #2a2a1e; box-shadow: 0 0 8px rgba(255,217,61,0.4); }
+.card-name { font-weight: bold; font-size: 13px; color: #fff; }
+.card-rank { position: absolute; top: 4px; right: 6px; font-size: 11px; color: #ffd93d; font-weight: bold; }
+.card-meta { font-size: 11px; color: #aaa; margin: 3px 0; }
+.card-skill { font-size: 11px; color: #4ecdc4; }
+.card-pos { font-size: 10px; color: #ff6b6b; }
+
+/* 操作栏 */
+.actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+button {
+  background: #16213e;
+  color: #e0e0e0;
+  border: 1px solid #3a3a5c;
+  border-radius: 5px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+button:hover { background: #0f3460; border-color: #4ecdc4; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+button.primary { background: #c92a2a; border-color: #ff4d6d; }
+button.primary:hover { background: #ff4d6d; }
+
+.cmd-input {
+  flex: 1;
+  min-width: 200px;
+  background: #0d0d1a;
+  border: 1px solid #3a3a5c;
+  border-radius: 5px;
+  padding: 8px 12px;
+  color: #e0e0e0;
+  font-size: 13px;
+}
+
+/* 日志 */
+.log-panel {
+  max-height: 160px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.log-panel::-webkit-scrollbar { width: 6px; }
+.log-panel::-webkit-scrollbar-thumb { background: #3a3a5c; border-radius: 3px; }
+.log-line { padding: 1px 0; }
+
+/* 选择界面 */
+.select-screen { text-align: center; padding: 40px 20px; }
+.select-btns { display: flex; gap: 16px; justify-content: center; margin-top: 24px; flex-wrap: wrap; }
+.select-btn {
+  background: #1a1a2e;
+  border: 2px solid #3a3a5c;
+  border-radius: 10px;
+  padding: 24px 32px;
+  cursor: pointer;
+  color: #e0e0e0;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+.select-btn:hover { border-color: #ff4d6d; transform: translateY(-3px); }
+.faction-desc { font-size: 12px; color: #888; margin-top: 6px; }
+
+/* 休整界面 */
+.rest-panel { text-align: center; }
+.rest-stats { font-size: 16px; margin: 16px 0; }
+.rest-btns { display: flex; flex-direction: column; gap: 8px; max-width: 300px; margin: 0 auto; }
+.rest-btns button { padding: 12px; font-size: 14px; }
+
+/* 结束界面 */
+.gameover { text-align: center; padding: 40px; }
+.gameover h2 { font-size: 28px; color: #ff4d6d; margin-bottom: 16px; }
+.final-stats { font-size: 18px; line-height: 2; }
+
+.wave-banner {
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  color: #ffd93d;
+  background: linear-gradient(90deg, transparent, #2a1a0e, transparent);
+  padding: 6px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+}
+.boss-banner { color: #ff4d6d; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.6;} }
+</style>
+</head>
+<body>
+<div class="container" id="app"></div>
+
+<script>
+let selectedCards = new Set();
+
+let currentState = null;
+
+async function api(path, data) {
+  const opts = { method: 'GET' };
+  if (data) {
+    opts.method = 'POST';
+    opts.headers = {'Content-Type': 'application/json'};
+    opts.body = JSON.stringify(data);
+  }
+  const r = await fetch(path, opts);
+  return r.json();
+}
+
+function render(state) {
+  currentState = state;
+  const app = document.getElementById('app');
+  selectedCards.clear();
+
+  if (state.phase === 'protagonist_select') {
+    app.innerHTML = renderProtagonist();
+    return;
+  }
+  if (state.phase === 'faction_select') {
+    app.innerHTML = renderFaction(state);
+    return;
+  }
+  if (state.phase === 'rest') {
+    app.innerHTML = renderRest(state);
+    bindRest();
+    return;
+  }
+  if (state.phase === 'game_over') {
+    app.innerHTML = renderGameOver(state);
+    return;
+  }
+  // battle
+  app.innerHTML = renderBattle(state);
+  bindBattle(state);
+}
+
+function renderProtagonist() {
+  return `<div class="select-screen">
+    <div class="title">女神异闻录：阿尔卡那协奏</div>
+    <p style="margin:20px 0;color:#888;">多轮挑战模式</p>
+    <div class="select-btns">
+      <button class="select-btn" onclick="selectProtagonist('A')">
+        🧑 A. 结城理（男）<br><span class="faction-desc">初始阵营：愚者 / 魔术师 / 恋爱</span>
+      </button>
+      <button class="select-btn" onclick="selectProtagonist('B')">
+        👩 B. 汐见琴音（女）<br><span class="faction-desc">初始阵营：愚者 / 魔术师 / 恋爱</span>
+      </button>
+    </div>
+  </div>`;
+}
+
+function renderFaction(state) {
+  const factions = {
+    '愚者': {bonus:'无拘之人', desc:'每回合首次构筑技能力度+1阶'},
+    '魔术师': {bonus:'炎之契约者', desc:'火焰属性伤害+20%'},
+    '恋爱': {bonus:'爱之守护者', desc:'恢复技能效果+30%'},
+  };
+  let btns = '';
+  for (const f of state.available_factions) {
+    const info = factions[f] || {bonus:'', desc:''};
+    btns += `<button class="select-btn" onclick="selectFaction('${f}')">
+      ${f}<br><span class="faction-desc">${info.bonus}：${info.desc}</span>
+    </button>`;
+  }
+  return `<div class="select-screen">
+    <div class="title">选择阵营</div>
+    <div class="select-btns">${btns}</div>
+  </div>`;
+}
+
+function renderRest(state) {
+  const p = state.player;
+  return `<div class="rest-panel">
+    <div class="title">🏕️ 休整阶段 - 第 ${state.wave} 波结束</div>
+    <div class="rest-stats">
+      ❤️ HP ${p.hp}/${p.max_hp} | 💰 ¥${p.money} | 📚 牌库 Lv.${p.deck_level} | 🏆 得分 ${state.total_score}
+    </div>
+    <div class="rest-btns">
+      <button onclick="rest('1')">❤️ 完全恢复 HP（¥300）</button>
+      <button onclick="rest('2')">📚 升级牌库</button>
+      <button onclick="rest('3')">🃏 额外抽 2 张卡（¥150）</button>
+      <button class="primary" onclick="rest('4')">▶ 进入下一波</button>
+      <button onclick="rest('5')">🏁 结束挑战</button>
+    </div>
+  </div>`;
+}
+
+function renderGameOver(state) {
+  return `<div class="gameover">
+    <h2>${state.game_over_reason}</h2>
+    <div class="final-stats">
+      到达波次：${state.wave}<br>
+      总得分：${state.total_score}<br>
+      ${state.player ? `最终 HP：${state.player.hp}/${state.player.max_hp}` : ''}
+    </div>
+    <button style="margin-top:24px;padding:12px 24px;" onclick="resetGame()">🔄 重新开始</button>
+  </div>`;
+}
+
+function renderBattle(state) {
+  const p = state.player;
+  let html = '';
+
+  // 波次横幅
+  html += `<div class="wave-banner ${state.is_boss ? 'boss-banner' : ''}">${state.is_boss ? '⚠️ BOSS战 ⚠️' : ''} 第 ${state.wave} 波 · 回合 ${state.turn}</div>`;
+
+  // 状态栏
+  const gaugePct = p.theurgy_gauge;
+  html += `<div class="status-bar">
+    <div class="item">🌊 回合 ${state.turn}</div>
+    <div class="item">💰 ¥${p.money}</div>
+    <div class="item">📚 DECK Lv.${p.deck_level}</div>
+    <div class="item">🃏 ${p.hand.length}/${p.hand_limit}</div>
+    <div class="item">🌟 神通法 <span class="gauge"><span class="gauge-fill" style="width:${gaugePct}%"></span></span> ${p.theurgy_gauge}%</div>
+  </div>`;
+
+  // 敌人区
+  html += `<div class="panel"><div class="panel-title">◆ 敌 人 区 域 ◆</div><div class="enemy-grid">`;
+  state.enemies.forEach((e, i) => {
+    const cls = `enemy-card ${e.alive ? '' : 'dead'} ${e.is_knocked_down ? 'knocked' : ''}`;
+    html += `<div class="${cls}">
+      <div class="enemy-name">【敌人${i+1}】${e.name} <span style="font-size:11px;color:#888;">Lv.${e.level}</span></div>
+      <div class="enemy-hp-bar"><div class="enemy-hp-fill" style="width:${e.hp_pct}%"></div></div>
+      <div style="font-size:11px;">${e.hp}/${e.max_hp} ${e.is_knocked_down ? '💥倒地' : ''}</div>
+      <div class="enemy-info">${e.affinities.map(a=>`<span class="affinity-tag">${a}</span>`).join('') || '无特殊相性'}</div>
+      <div class="intent">意图：${e.intent}</div>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  // 构筑槽
+  html += `<div class="panel"><div class="panel-title">◆ 构 筑 槽 ◆</div><div class="slots">`;
+  state.slots.forEach((s, i) => {
+    if (s) {
+      html += `<div class="slot filled" onclick="removeSlot(${i+1})">
+        <div class="slot-label">SLOT ${i+1}</div>
+        <div class="slot-card">${s.name}</div>
+        <div class="slot-skill">${s.skill}</div>
+      </div>`;
+    } else {
+      html += `<div class="slot"><div class="slot-label">SLOT ${i+1}</div><div style="color:#555;font-size:11px;">空</div></div>`;
+    }
+  });
+  html += `</div>`;
+
+  // 预览
+  if (state.preview) {
+    const pv = state.preview;
+    const fool = pv.power_fool ? ` → 愚者加成后 ${pv.power_fool}` : '';
+    html += `<div class="preview">
+      <div class="preview-row">✨ 合成预览：${pv.element_icon}${pv.element} · ${pv.range} · ${pv.power}${fool}</div>
+      <div class="preview-row">预估伤害(普通相性)：约 ${pv.est_damage} | 圣杯加成 ×${pv.cup_mult}</div>
+    </div>`;
+  } else {
+    html += `<div class="preview" style="opacity:0.6;"><div class="preview-row">—— 等待构筑 ——</div></div>`;
+  }
+  html += `</div>`;
+
+  // 玩家状态
+  const hpPct = Math.round(p.hp / p.max_hp * 100);
+  html += `<div class="panel"><div class="panel-title">◆ 玩 家 状 态 ◆</div>
+    <div class="player-status">
+      <div>${p.name}（${p.faction}）</div>
+      <div>❤️ <span class="hp-bar"><span class="hp-fill" style="width:${hpPct}%"></span></span> ${p.hp}/${p.max_hp}</div>
+      <div>⚔️ ATK ${p.attack}</div>
+      <div>🎯 暴击 ${Math.round(p.crit_rate*100)}%</div>
+      <div>🔄 翻转剩余 ${p.flip_remaining}</div>
+      <div>🏆 圣杯层数 ${p.cup_stack}</div>
+      <div>🏆 得分 ${state.total_score}</div>
+    </div>
+    <div style="margin-top:6px;font-size:12px;color:#4ecdc4;">阵营增益：${p.faction_bonus}</div>
+  </div>`;
+
+  // 手牌
+  html += `<div class="panel"><div class="panel-title">◆ 手 牌 ◆（点击选择，再点"批量构筑"；或直接输入序号如 1,2,3）</div><div class="hand-grid">`;
+  p.hand.forEach((c, i) => {
+    html += `<div class="card" data-idx="${i+1}">
+      <div class="card-rank">[${c.rank}]</div>
+      <div class="card-name">${c.name}${c.arcana ? `(${c.arcana})` : ''}</div>
+      <div class="card-meta">${typeLabel(c.card_type)}</div>`;
+    if (c.card_type === 'PERSONA') {
+      html += `<div class="card-pos">${c.is_reversed ? '▼逆位' : '▲正位'}</div>`;
+      html += `<div class="card-skill">▲ ${c.skill_upright}</div>`;
+      html += `<div class="card-skill">▼ ${c.skill_reversed}</div>`;
+    } else if (c.skill) {
+      html += `<div class="card-skill">${c.skill}</div>`;
+    } else if (c.desc) {
+      html += `<div class="card-skill">${c.desc}</div>`;
+    }
+    html += `</div>`;
+  });
+  html += `</div></div>`;
+
+  // 操作栏
+  const drawCost = 50 * Math.pow(2, p.draw_count_this_turn || 0);
+  html += `<div class="panel"><div class="panel-title">◆ 操 作 ◆</div>
+    <div class="actions">
+      <button onclick="act('1')">🔄 翻转</button>
+      <button onclick="act('2')">🃏 抽牌 ¥${drawCost}</button>
+      <button onclick="act('3')">📚 升级牌库</button>
+      <button onclick="act('4')">✨ 用辅助</button>
+      <button class="primary" onclick="confirmCompose()">⚔️ 确认构筑</button>
+      <button onclick="act('6')">⏭️ 结束回合</button>
+    </div>
+    <div class="actions" style="margin-top:8px;">
+      <input class="cmd-input" id="cmdInput" placeholder="输入命令：1,2,3 批量构筑 / flip 序号 / confirm 敌号" onkeydown="if(event.key==='Enter')submitCmd()">
+      <button onclick="submitCmd()">发送</button>
+      <button onclick="batchCompose()">📦 批量构筑(选中)</button>
+      <button onclick="act('clear')">🧹 清空</button>
+    </div>
+  </div>`;
+
+  // 日志
+  const logs = state.log.slice(-15).reverse();
+  html += `<div class="panel"><div class="panel-title">◆ 战 斗 日 志 ◆</div><div class="log-panel">`;
+  logs.forEach(l => { html += `<div class="log-line">${l}</div>`; });
+  html += `</div></div>`;
+
+  return html;
+}
+
+function typeLabel(t) {
+  const m = {PERSONA:'人格面具', SWORD:'宝剑', WAND:'权杖', CUP:'圣杯', PENTACLE:'星币', THEURGY:'神通法', ALL_OUT:'总攻击'};
+  return m[t] || t;
+}
+
+function bindBattle(state) {
+  document.querySelectorAll('.card').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = el.dataset.idx;
+      if (selectedCards.has(idx)) { selectedCards.delete(idx); el.classList.remove('selected'); }
+      else { selectedCards.add(idx); el.classList.add('selected'); }
+    });
+  });
+}
+
+function bindRest() {}
+
+async function selectProtagonist(c) { const s = await api('/select_protagonist', {choice:c}); render(s); }
+async function selectFaction(f) { const s = await api('/select_faction', {faction:f}); render(s); }
+async function act(cmd) { const s = await api('/action', {cmd}); render(s); }
+async function submitCmd() {
+  const input = document.getElementById('cmdInput');
+  const cmd = input.value.trim();
+  if (!cmd) return;
+  input.value = '';
+  const s = await api('/action', {cmd});
+  render(s);
+}
+async function batchCompose() {
+  if (selectedCards.size === 0) { alert('请先点击选择手牌'); return; }
+  const nums = Array.from(selectedCards).join(',');
+  const s = await api('/action', {cmd: nums});
+  render(s);
+}
+async function removeSlot(slot) {
+  const s = await api('/action', {cmd: `remove ${slot}`});
+  render(s);
+}
+async function confirmCompose() {
+  if (!currentState || !currentState.preview) {
+    const s = await api('/action', {cmd:'5'});
+    render(s);
+    return;
+  }
+  const pv = currentState.preview;
+  // 单体攻击技能需要指定目标
+  if (pv.range === '单体' && pv.element !== '恢复') {
+    const enemies = currentState.enemies.map((e,i)=>`${i+1}. ${e.name}`).join('\n');
+    const t = prompt('攻击哪个敌人？\n' + enemies);
+    if (t === null) return;
+    const s = await api('/action', {cmd: `confirm ${t.trim()}`});
+    render(s);
+  } else {
+    const s = await api('/action', {cmd:'5'});
+    render(s);
+  }
+}
+async function rest(choice) { const s = await api('/rest', {choice}); render(s); }
+async function resetGame() { const s = await api('/reset', {}); render(s); }
+
+// 初始化
+api('/state').then(render);
+</script>
+</body>
+</html>
