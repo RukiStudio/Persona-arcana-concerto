@@ -9,7 +9,7 @@ import webbrowser
 from http.server import HTTPServer, BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs
 
-from game_state import GameState, PHASE_PROTAGONIST, PHASE_FACTION, PHASE_BATTLE, PHASE_REST, PHASE_GAME_OVER
+from game_state import GameState, PHASE_PROTAGONIST, PHASE_FACTION, PHASE_BATTLE, PHASE_REST, PHASE_VELVET, PHASE_GAME_OVER
 
 
 GAME = GameState()
@@ -72,6 +72,9 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(result)
             elif self.path == "/rest":
                 result = GAME.rest_action(data.get("choice", ""))
+                self._send_json(result)
+            elif self.path == "/velvet":
+                result = GAME.velvet_action(data.get("action", ""), data.get("params", {}))
                 self._send_json(result)
             elif self.path == "/reset":
                 GAME = GameState()

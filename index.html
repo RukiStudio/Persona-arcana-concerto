@@ -235,6 +235,103 @@ button.primary:hover { background: #ff4d6d; }
 }
 .boss-banner { color: #ff4d6d; animation: pulse 1.5s infinite; }
 @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.6;} }
+
+/* 卡牌可拖拽 */
+.card.draggable { cursor: grab; user-select: none; }
+.card.draggable:active { cursor: grabbing; }
+.card.dragging { opacity: 0.4; transform: scale(0.95); }
+.slot.drop-target {
+  border-color: #ffd93d !important;
+  background: #2a2a1e !important;
+  box-shadow: 0 0 12px rgba(255,217,61,0.6);
+}
+
+/* 阵营选择网格 */
+.faction-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 20px;
+}
+.faction-card {
+  background: #1a1a2e;
+  border: 2px solid #3a3a5c;
+  border-radius: 8px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+.faction-card:hover { border-color: #ff4d6d; transform: translateY(-2px); }
+.faction-card.locked { opacity: 0.4; cursor: not-allowed; }
+.faction-card.selected { border-color: #ffd93d; background: #2a2a1e; }
+.faction-name { font-size: 16px; font-weight: bold; color: #ff4d6d; }
+.faction-bonus { font-size: 11px; color: #4ecdc4; margin-top: 4px; }
+.faction-desc { font-size: 11px; color: #888; margin-top: 4px; }
+
+/* 天鹅绒房间 */
+.velvet-panel {
+  background: linear-gradient(135deg, #1a0e2e, #0e1a2e);
+  border: 1px solid #6a4a8c;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.velvet-tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.velvet-tab {
+  background: #2a1a3e;
+  border: 1px solid #4a3a5c;
+  color: #e0e0e0;
+  border-radius: 5px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.velvet-tab.active { background: #6a4a8c; border-color: #ff4d6d; }
+.persona-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+.persona-card {
+  background: #1a1a2e;
+  border: 1px solid #4a4a7c;
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.persona-card.equipped { border-color: #ffd93d; background: #2a2a1e; }
+.persona-card:hover { border-color: #4ecdc4; }
+.persona-name { font-weight: bold; color: #fff; font-size: 13px; }
+.persona-arcana { color: #ff6b6b; font-size: 11px; }
+.persona-passive { color: #4ecdc4; font-size: 11px; margin-top: 4px; }
+.recipe-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  background: #1a1a2e;
+  border: 1px solid #3a3a5c;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.recipe-materials { color: #aaa; flex: 1; }
+.recipe-result { color: #ffd93d; font-weight: bold; }
+.recipe-cost { color: #51cf66; }
+
+/* 玩家等级条 */
+.exp-bar {
+  width: 120px;
+  height: 10px;
+  background: #2a2a4a;
+  border-radius: 3px;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+}
+.exp-fill { height: 100%; background: linear-gradient(90deg, #4ecdc4, #51cf66); transition: width 0.3s; }
 </style>
 </head>
 <body>
@@ -274,6 +371,11 @@ function render(state) {
     bindRest();
     return;
   }
+  if (state.phase === 'velvet') {
+    app.innerHTML = renderVelvet(state);
+    bindVelvet(state);
+    return;
+  }
   if (state.phase === 'game_over') {
     app.innerHTML = renderGameOver(state);
     return;
@@ -299,38 +401,71 @@ function renderProtagonist() {
 }
 
 function renderFaction(state) {
-  const factions = {
-    '愚者': {bonus:'无拘之人', desc:'每回合首次构筑技能力度+1阶'},
-    '魔术师': {bonus:'炎之契约者', desc:'火焰属性伤害+20%'},
-    '恋爱': {bonus:'爱之守护者', desc:'恢复技能效果+30%'},
+  const allArcana = ['愚者','魔术师','女教皇','女皇','皇帝','教皇','恋爱','战车','正义','隐者','命运','力量','倒悬者','死神','节制','恶魔','塔','星','月亮','太阳','审判','永劫'];
+  const bonusMap = {
+    '愚者': ['无拘之人','每回合首次构筑技能力度+1阶'],
+    '魔术师': ['炎之契约者','火焰属性伤害+20%'],
+    '女教皇': ['神圣女祭司','祝福属性伤害+15%'],
+    '女皇': ['丰饶之母','资金获取+50%'],
+    '皇帝': ['霸者之统','攻击力+15%'],
+    '教皇': ['咒祝之主','咒怨属性伤害+15%'],
+    '恋爱': ['爱之守护者','恢复技能效果+30%'],
+    '战车': ['战场先锋','物理伤害+15%'],
+    '正义': ['审判之光','祝福伤害+20%，暴击+5%'],
+    '隐者': ['孤独智者','抽牌费用-30%'],
+    '命运': ['命运抉择','暴击率+10%'],
+    '力量': ['百战之勇','物理伤害+20%'],
+    '倒悬者': ['逆位之解','每回合翻转次数+1'],
+    '死神': ['终焉之刃','咒怨伤害+25%，对倒地敌人+30%'],
+    '节制': ['中和之力','神通法槽+1，恢复+15%'],
+    '恶魔': ['暗契约者','咒怨伤害+20%，削弱效果+50%'],
+    '塔': ['崩天之塔','总攻击伤害+50%'],
+    '星': ['希望之光','圣杯加成+50%'],
+    '月亮': ['幽月之梦','每回合额外抽1张牌'],
+    '太阳': ['光辉之阳','HP恢复+50%'],
+    '审判': ['终末审判','万能属性伤害+20%'],
+    '永劫': ['永恒轮回','全属性伤害+8%'],
   };
-  let btns = '';
-  for (const f of state.available_factions) {
-    const info = factions[f] || {bonus:'', desc:''};
-    btns += `<button class="select-btn" onclick="selectFaction('${f}')">
-      ${f}<br><span class="faction-desc">${info.bonus}：${info.desc}</span>
-    </button>`;
+  const available = new Set(state.available_factions || []);
+  let cards = '';
+  for (const f of allArcana) {
+    const info = bonusMap[f] || ['',''];
+    const locked = !available.has(f);
+    const cls = locked ? 'faction-card locked' : 'faction-card';
+    const onclick = locked ? '' : `onclick="selectFaction('${f}')"`;
+    const tag = locked ? '<div style="color:#ff6b6b;font-size:10px;margin-top:4px;">🔒 未解锁</div>' : '<div style="color:#51cf66;font-size:10px;margin-top:4px;">✅ 已解锁</div>';
+    cards += `<div class="${cls}" ${onclick}>
+      <div class="faction-name">${f}</div>
+      <div class="faction-bonus">${info[0]}</div>
+      <div class="faction-desc">${info[1]}</div>
+      ${tag}
+    </div>`;
   }
   return `<div class="select-screen">
     <div class="title">选择阵营</div>
-    <div class="select-btns">${btns}</div>
+    <p style="color:#888;margin:12px 0;">已解锁 ${available.size} / 22 个阵营（更多阵营通过波次进度解锁）</p>
+    <div class="faction-grid">${cards}</div>
   </div>`;
 }
 
 function renderRest(state) {
   const p = state.player;
+  const expPct = p.player_exp_max ? Math.min(100, Math.round(p.player_exp / p.player_exp_max * 100)) : 100;
   return `<div class="rest-panel">
     <div class="title">🏕️ 休整阶段 - 第 ${state.wave} 波结束</div>
     <div class="rest-stats">
-      ❤️ HP ${p.hp}/${p.max_hp} | 💰 ¥${p.money} | 📚 牌库 Lv.${p.deck_level} | 🏆 得分 ${state.total_score}
+      ❤️ HP ${p.hp}/${p.max_hp} | 💰 ¥${p.money} | 📚 牌库 Lv.${p.deck_level} | 🏆 得分 ${state.total_score}<br>
+      ⭐ 玩家等级 Lv.${p.player_level} <span class="exp-bar"><span class="exp-fill" style="width:${expPct}%"></span></span> ${p.player_exp}/${p.player_exp_max || 'MAX'}
     </div>
     <div class="rest-btns">
       <button onclick="rest('1')">❤️ 完全恢复 HP（¥300）</button>
       <button onclick="rest('2')">📚 升级牌库</button>
       <button onclick="rest('3')">🃏 额外抽 2 张卡（¥150）</button>
+      <button onclick="rest('6')">🚪 进入天鹅绒房间（局外养成）</button>
       <button class="primary" onclick="rest('4')">▶ 进入下一波</button>
       <button onclick="rest('5')">🏁 结束挑战</button>
     </div>
+    ${p.equipped_persona_name ? `<div style="margin-top:12px;color:#4ecdc4;font-size:13px;">当前装备：${p.equipped_persona_name}${p.active_passives && p.active_passives.length ? '（' + p.active_passives.map(s=>s.name).join('，') + '）' : ''}</div>` : ''}
   </div>`;
 }
 
@@ -378,18 +513,21 @@ function renderBattle(state) {
   html += `</div></div>`;
 
   // 构筑槽
-  html += `<div class="panel"><div class="panel-title">◆ 构 筑 槽 ◆</div><div class="slots">`;
+  html += `<div class="panel"><div class="panel-title">◆ 构 筑 槽 ◆（拖拽手牌到此处，或点击选择）</div><div class="slots">`;
   state.slots.forEach((s, i) => {
     if (s) {
-      html += `<div class="slot filled" onclick="removeSlot(${i+1})">
+      html += `<div class="slot filled" data-slot="${i+1}" onclick="removeSlot(${i+1})">
         <div class="slot-label">SLOT ${i+1}</div>
         <div class="slot-card">${s.name}</div>
         <div class="slot-skill">${s.skill}</div>
       </div>`;
     } else {
-      html += `<div class="slot"><div class="slot-label">SLOT ${i+1}</div><div style="color:#555;font-size:11px;">空</div></div>`;
+      html += `<div class="slot drop-target-zone" data-slot="${i+1}" ondragover="onSlotDragOver(event,${i+1})" ondragleave="onSlotDragLeave(event,${i+1})" ondrop="onSlotDrop(event,${i+1})">
+        <div class="slot-label">SLOT ${i+1}</div><div style="color:#555;font-size:11px;">拖到此处</div>
+      </div>`;
     }
   });
+  // 已填满的槽也接受drop（替换/挪位）
   html += `</div>`;
 
   // 预览
@@ -421,9 +559,11 @@ function renderBattle(state) {
   </div>`;
 
   // 手牌
-  html += `<div class="panel"><div class="panel-title">◆ 手 牌 ◆（点击选择，再点"批量构筑"；或直接输入序号如 1,2,3）</div><div class="hand-grid">`;
+  html += `<div class="panel"><div class="panel-title">◆ 手 牌 ◆（拖拽到构筑槽，或点击选择+批量构筑；或输入序号如 1,2,3）</div><div class="hand-grid">`;
   p.hand.forEach((c, i) => {
-    html += `<div class="card" data-idx="${i+1}">
+    const isComposable = (c.card_type === 'PERSONA' || c.card_type === 'SWORD' || c.card_type === 'THEURGY' || c.card_type === 'ALL_OUT');
+    const dragAttr = isComposable ? `draggable="true" ondragstart="onCardDragStart(event,${i+1})" ondragend="onCardDragEnd(event)"` : '';
+    html += `<div class="card ${isComposable ? 'draggable' : ''}" data-idx="${i+1}" ${dragAttr}>
       <div class="card-rank">[${c.rank}]</div>
       <div class="card-name">${c.name}${c.arcana ? `(${c.arcana})` : ''}</div>
       <div class="card-meta">${typeLabel(c.card_type)}</div>`;
@@ -477,6 +617,7 @@ function bindBattle(state) {
   document.querySelectorAll('.card').forEach(el => {
     el.addEventListener('click', () => {
       const idx = el.dataset.idx;
+      if (!idx) return;
       if (selectedCards.has(idx)) { selectedCards.delete(idx); el.classList.remove('selected'); }
       else { selectedCards.add(idx); el.classList.add('selected'); }
     });
@@ -484,6 +625,218 @@ function bindBattle(state) {
 }
 
 function bindRest() {}
+
+// ===== HTML5 拖拽 API =====
+let dragSourceIdx = null;
+
+function onCardDragStart(ev, idx) {
+  dragSourceIdx = idx;
+  ev.dataTransfer.effectAllowed = 'move';
+  ev.dataTransfer.setData('text/plain', String(idx));
+  ev.target.classList.add('dragging');
+}
+
+function onCardDragEnd(ev) {
+  ev.target.classList.remove('dragging');
+  document.querySelectorAll('.slot').forEach(s => s.classList.remove('drop-target'));
+}
+
+function onSlotDragOver(ev, slotIdx) {
+  ev.preventDefault();
+  ev.dataTransfer.dropEffect = 'move';
+  const slot = ev.currentTarget;
+  slot.classList.add('drop-target');
+}
+
+function onSlotDragLeave(ev, slotIdx) {
+  ev.currentTarget.classList.remove('drop-target');
+}
+
+function onSlotDrop(ev, slotIdx) {
+  ev.preventDefault();
+  document.querySelectorAll('.slot').forEach(s => s.classList.remove('drop-target'));
+  const idx = ev.dataTransfer.getData('text/plain') || dragSourceIdx;
+  if (!idx) return;
+  // 通过 put 命令放入指定槽位
+  doPutCard(idx, slotIdx);
+}
+
+async function doPutCard(cardNum, slotIdx) {
+  const s = await api('/action', { cmd: `put ${cardNum} ${slotIdx}` });
+  render(s);
+}
+
+// ===== 天鹅绒房间（局外养成） =====
+let velvetTab = 'personas';
+
+function renderVelvet(state) {
+  const p = state.player;
+  const expPct = p.player_exp_max ? Math.min(100, Math.round(p.player_exp / p.player_exp_max * 100)) : 100;
+  let html = `<div class="velvet-panel">
+    <div class="title">🚪 天鹅绒房间 · 局外养成</div>
+    <div class="rest-stats" style="text-align:center;">
+      ⭐ Lv.${p.player_level} <span class="exp-bar"><span class="exp-fill" style="width:${expPct}%"></span></span> ${p.player_exp}/${p.player_exp_max || 'MAX'}
+      | ❤️ HP ${p.hp}/${p.max_hp} | 💰 ¥${p.money} | 📚 牌库 Lv.${p.deck_level} | 当前阵营：${p.faction}
+    </div>
+    <div class="velvet-tabs">
+      <button class="velvet-tab ${velvetTab==='personas'?'active':''}" onclick="velvetSwitchTab('personas')">📘 人格面具图鉴</button>
+      <button class="velvet-tab ${velvetTab==='equip'?'active':''}" onclick="velvetSwitchTab('equip')">⚔️ 装备/卸下</button>
+      <button class="velvet-tab ${velvetTab==='fuse'?'active':''}" onclick="velvetSwitchTab('fuse')">✨ 合成</button>
+      <button class="velvet-tab ${velvetTab==='faction'?'active':''}" onclick="velvetSwitchTab('faction')">🔄 切换阵营</button>
+      <button class="velvet-tab ${velvetTab==='shop'?'active':''}" onclick="velvetSwitchTab('shop')">🛒 购买面具</button>
+      <button class="velvet-tab" onclick="velvetLeave()">🚪 离开房间</button>
+    </div>
+  `;
+
+  if (velvetTab === 'personas' || velvetTab === 'equip') {
+    html += renderPersonaList(state);
+  } else if (velvetTab === 'fuse') {
+    html += renderRecipeList(state);
+  } else if (velvetTab === 'faction') {
+    html += renderFactionSwitch(state);
+  } else if (velvetTab === 'shop') {
+    html += renderShop(state);
+  }
+
+  html += `</div>`;
+
+  // 日志
+  const logs = state.log.slice(-15).reverse();
+  html += `<div class="panel"><div class="panel-title">◆ 天 鹅 绒 房 间 日 志 ◆</div><div class="log-panel">`;
+  logs.forEach(l => { html += `<div class="log-line">${l}</div>`; });
+  html += `</div></div>`;
+  return html;
+}
+
+function renderPersonaList(state) {
+  const p = state.player;
+  const details = p.owned_persona_details || [];
+  let cards = '';
+  for (const d of details) {
+    const equipped = (p.equipped_persona === d.card_id);
+    const passive = d.passive_desc || '——';
+    cards += `<div class="persona-card ${equipped ? 'equipped' : ''}" onclick="velvetEquip('${d.card_id}')">
+      <div class="persona-name">[${d.rank}] ${d.name}</div>
+      <div class="persona-arcana">${d.arcana}${equipped ? ' · 已装备' : ' · 点击装备'}</div>
+      <div class="card-skill" style="color:#4ecdc4;font-size:11px;">▲ ${d.skill_up || ''}</div>
+      <div class="card-skill" style="color:#ff6b6b;font-size:11px;">▼ ${d.skill_dn || ''}</div>
+      <div class="persona-passive">被动：${passive}</div>
+    </div>`;
+  }
+  if (!details.length) {
+    cards = `<div style="text-align:center;color:#888;padding:20px;">尚未收集任何人格面具</div>`;
+  }
+  let equipAction = '';
+  if (p.equipped_persona) {
+    equipAction = `<button class="primary" onclick="velvetUnequip()" style="margin-bottom:10px;">卸下当前装备</button>`;
+  }
+  return `<div>${equipAction}<div class="persona-grid">${cards}</div></div>`;
+}
+
+function renderRecipeList(state) {
+  // 后端没有暴露 recipe_db 到 dict，前端预置一份配方信息
+  const recipes = [
+    {id:'recipe_slime_to_high', mats:'软泥怪 + 俄耳甫斯', result:'亚森', cost:500},
+    {id:'recipe_pixie_to_high', mats:'皮克西 + 希路奇', result:'那耳喀索斯', cost:500},
+    {id:'recipe_jack_fusion', mats:'杰克霜精 + 杰克灯笼', result:'花魄', cost:800},
+    {id:'recipe_warriors', mats:'女武神 + 斗牛士', result:'鬼神', cost:1200},
+    {id:'recipe_paladin', mats:'雅典娜 + 法王鼎', result:'义经', cost:2000},
+    {id:'recipe_archmage', mats:'托尔 + 缇坦妮亚', result:'皇广龙', cost:1500},
+    {id:'recipe_judgement', mats:'塔纳托斯 + 湿婆', result:'救世主', cost:3000},
+  ];
+  let rows = '';
+  for (const r of recipes) {
+    rows += `<div class="recipe-row">
+      <div class="recipe-materials">${r.mats} → <span class="recipe-result">${r.result}</span></div>
+      <div class="recipe-cost">¥${r.cost}</div>
+      <button onclick="velvetFuse('${r.id}')">合成</button>
+    </div>`;
+  }
+  return `<div>${rows}</div>`;
+}
+
+function renderFactionSwitch(state) {
+  const allArcana = ['愚者','魔术师','女教皇','女皇','皇帝','教皇','恋爱','战车','正义','隐者','命运','力量','倒悬者','死神','节制','恶魔','塔','星','月亮','太阳','审判','永劫'];
+  const available = new Set(state.available_factions || []);
+  const current = state.player.faction;
+  let cards = '';
+  for (const f of allArcana) {
+    const locked = !available.has(f);
+    const cls = locked ? 'faction-card locked' : (f === current ? 'faction-card selected' : 'faction-card');
+    const onclick = locked || f === current ? '' : `onclick="velvetSwitchFaction('${f}')"`;
+    const tag = f === current ? '<div style="color:#ffd93d;font-size:10px;margin-top:4px;">当前</div>' : (locked ? '<div style="color:#ff6b6b;font-size:10px;margin-top:4px;">🔒 未解锁</div>' : '<div style="color:#51cf66;font-size:10px;margin-top:4px;">可切换</div>');
+    cards += `<div class="${cls}" ${onclick}>
+      <div class="faction-name">${f}</div>
+      ${tag}
+    </div>`;
+  }
+  return `<div><p style="color:#888;font-size:12px;margin-bottom:8px;">切换阵营会重置牌库（图鉴保留）</p><div class="faction-grid">${cards}</div></div>`;
+}
+
+function renderShop(state) {
+  // 展示部分可购买人格面具（简单定价）
+  const shopItems = [
+    {id:'slime', name:'软泥怪', price:800},
+    {id:'pixie', name:'皮克西', price:600},
+    {id:'jack_frost', name:'杰克霜精', price:1000},
+    {id:'valkyrie', name:'女武神', price:1500},
+    {id:'angel', name:'天使', price:1200},
+    {id:'athena', name:'雅典娜', price:2500},
+    {id:'thanatos', name:'塔纳托斯', price:4000},
+    {id:'yoshitsune', name:'义经', price:5000},
+    {id:'messiah', name:'救世主', price:8000},
+  ];
+  const owned = new Set(state.player.owned_personas);
+  let rows = '';
+  for (const it of shopItems) {
+    const ownedTag = owned.has(it.id) ? '<span style="color:#888;">已拥有</span>' : `<button onclick="velvetBuy('${it.id}', ${it.price})">购买 ¥${it.price}</button>`;
+    rows += `<div class="recipe-row">
+      <div class="recipe-materials">${it.name}</div>
+      ${ownedTag}
+    </div>`;
+  }
+  return `<div>${rows}</div>`;
+}
+
+function bindVelvet(state) {}
+
+async function velvetSwitchTab(tab) {
+  velvetTab = tab;
+  const s = await api('/state');
+  render(s);
+}
+
+async function velvetEquip(pid) {
+  const s = await api('/velvet', { action: 'equip', params: { persona_id: pid } });
+  render(s);
+}
+
+async function velvetUnequip() {
+  const s = await api('/velvet', { action: 'unequip', params: {} });
+  render(s);
+}
+
+async function velvetFuse(recipeId) {
+  if (!confirm('确定要消耗材料人格面具进行合成？')) return;
+  const s = await api('/velvet', { action: 'fuse', params: { recipe_id: recipeId } });
+  render(s);
+}
+
+async function velvetSwitchFaction(faction) {
+  if (!confirm(`切换到「${faction}」阵营会重置牌库（图鉴保留），确定？`)) return;
+  const s = await api('/velvet', { action: 'switch_faction', params: { faction } });
+  render(s);
+}
+
+async function velvetBuy(pid, price) {
+  const s = await api('/velvet', { action: 'buy', params: { persona_id: pid, price } });
+  render(s);
+}
+
+async function velvetLeave() {
+  const s = await api('/velvet', { action: 'leave', params: {} });
+  render(s);
+}
 
 async function selectProtagonist(c) { const s = await api('/select_protagonist', {choice:c}); render(s); }
 async function selectFaction(f) { const s = await api('/select_faction', {faction:f}); render(s); }

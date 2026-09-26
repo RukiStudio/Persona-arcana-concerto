@@ -10,13 +10,20 @@ import copy
 from data import (
     Element, Power, Range, Affinity, CardType, Card, SkillData,
     build_card_db, build_arcana_db, build_enemy_db, RANK_NAME,
-    get_wave_config,
+    get_wave_config, get_unlocked_factions,
+    build_persona_recipes, build_passive_skills, build_persona_passive_map,
+    INITIAL_FACTIONS, ARCANA_ORDER, PLAYER_LEVEL_EXP,
 )
 from engine import (
     Player, Enemy, BattleLog, BattleState, compose_skill,
     calculate_damage, build_initial_deck, draw_cards,
     use_wand, use_cup, use_pentacle, use_theurgy, create_all_out_card,
     scale_enemy, calc_wave_reward, rest_heal,
+    init_passive_db, gain_exp, equip_persona, unequip_persona,
+    collect_persona, fuse_personas, buy_persona, recompute_after_growth,
+    PASSIVE_DB, PERSONA_PASSIVE_MAP,
+    get_faction_damage_mult, get_faction_crit_bonus, get_faction_money_mult,
+    get_faction_attack_mult,
 )
 from ui import find_card_by_input, parse_command
 
@@ -24,6 +31,8 @@ from ui import find_card_by_input, parse_command
 CARD_DB = build_card_db()
 ARCANA_DB = build_arcana_db()
 ENEMY_DB = build_enemy_db()
+RECIPE_DB = build_persona_recipes()
+init_passive_db()
 
 
 # 阶段常量
@@ -31,6 +40,7 @@ PHASE_PROTAGONIST = "protagonist_select"
 PHASE_FACTION = "faction_select"
 PHASE_BATTLE = "battle"
 PHASE_REST = "rest"
+PHASE_VELVET = "velvet"          # 天鹅绒房间（局外养成）
 PHASE_GAME_OVER = "game_over"
 
 
@@ -84,6 +94,25 @@ class GameState:
                 "faction": p.faction,
                 "faction_bonus": ARCANA_DB[p.faction].bonus_desc if p.faction in ARCANA_DB else "",
                 "hand": [self._card_to_dict(c) for c in p.hand],
+                # 局外养成
+                "player_level": p.player_level,
+                "player_exp": p.player_exp,
+                "player_exp_max": PLAYER_LEVEL_EXP[min(p.player_level - 1, len(PLAYER_LEVEL_EXP) - 1)] if p.player_level - 1 < len(PLAYER_LEVEL_EXP) else 0,
+                "owned_personas": p.owned_personas[:],
+                "owned_persona_details": [
+                    {
+                        "card_id": pid,
+                        "name": CARD_DB[pid].name if pid in CARD_DB else pid,
+                        "arcana": CARD_DB[pid].arcana if pid in CARD_DB else "",
+                        "rank": RANK_NAME[CARD_DB[pid].rank] if pid in CARD_DB else "?",
+                        "skill_up": f"{CARD_DB[pid].skill_upright.element.icon}{CARD_DB[pid].skill_upright.element.value}·{CARD_DB[pid].skill_upright.power.name_cn}" if pid in CARD_DB and CARD_DB[pid].skill_upright else "",
+                        "skill_dn": f"{CARD_DB[pid].skill_reversed.element.icon}{CARD_DB[pid].skill_reversed.element.value}·{CARD_DB[pid].skill_reversed.power.name_cn}" if pid in CARD_DB and CARD_DB[pid].skill_reversed else "",
+                        "passive_desc": (PASSIVE_DB[PERSONA_PASSIVE_MAP[pid]].desc if pid in PERSONA_PASSIVE_MAP and PERSONA_PASSIVE_MAP[pid] in PASSIVE_DB else ""),
+                    } for pid in p.owned_personas if pid in CARD_DB
+                ],
+                "equipped_persona": p.equipped_persona,
+                "equipped_persona_name": CARD_DB[p.equipped_persona].name if p.equipped_persona and p.equipped_persona in CARD_DB else "",
+                "active_passives": [{"id": s, "name": PASSIVE_DB[s].name, "desc": PASSIVE_DB[s].desc} for s in p.active_passives if s in PASSIVE_DB],
             }
         else:
             d["player"] = None
@@ -166,16 +195,19 @@ class GameState:
     def select_protagonist(self, choice: str) -> dict:
         if choice.upper() == "A":
             self.protagonist_name = "结城理"
-            self.available_factions = ["愚者", "魔术师", "恋爱"]
         else:
             self.protagonist_name = "汐见琴音"
-            self.available_factions = ["愚者", "魔术师", "恋爱"]
+        # 默认解锁3个初始阵营
+        self.available_factions = list(INITIAL_FACTIONS)
         self.phase = PHASE_FACTION
         return self.to_dict()
 
     def select_faction(self, faction: str) -> dict:
-        if faction not in ("愚者", "魔术师", "恋爱"):
+        if faction not in ARCANA_DB:
             self.log.add("❌ 无效阵营")
+            return self.to_dict()
+        if faction not in self.available_factions:
+            self.log.add(f"❌ 阵营「{faction}」尚未解锁")
             return self.to_dict()
         self.faction = faction
         faction_data = ARCANA_DB[faction]
@@ -183,8 +215,20 @@ class GameState:
             name=self.protagonist_name, faction=faction,
             deck=build_initial_deck(faction_data.persona_pool, CARD_DB),
         )
+        # 默认收集阵营对应的所有人格面具到图鉴
+        for pid in faction_data.persona_pool:
+            if pid not in self.player.owned_personas:
+                self.player.owned_personas.append(pid)
+        # 默认装备阵营池中第一张人格面具，演示被动效果
+        if faction_data.persona_pool:
+            self.player.equipped_persona = faction_data.persona_pool[0]
+        recompute_after_growth(self.player)
+        # 起始发放2张牌库中的人格面具卡到丢弃堆以便回洗
         self.log = BattleLog()
         self.log.add(f"⚔️ {self.protagonist_name} 加入挑战！阵营：{faction}（{faction_data.bonus_desc}）")
+        self.log.add(f"📘 图鉴初始化：{', '.join(CARD_DB[p].name for p in self.player.owned_personas)}")
+        if self.player.equipped_persona:
+            self.log.add(f"✅ 默认装备：{CARD_DB[self.player.equipped_persona].name}")
         self.phase = PHASE_BATTLE
         self._start_next_wave()
         return self.to_dict()
@@ -299,11 +343,47 @@ class GameState:
     def _on_wave_victory(self) -> None:
         enemies_defeated = len(self.enemies)
         reward = calc_wave_reward(self.wave, self.is_boss, enemies_defeated)
+        # 阵营资金加成
+        money_mult = get_faction_money_mult(self.player.faction)
+        reward_money = int(reward["money"] * money_mult)
         self.total_score += reward["score"]
-        self.player.money += reward["money"]
-        healed = rest_heal(self.player, reward["heal_pct"])
+        self.player.money += reward_money
+        # 恢复：太阳阵营+50%
+        heal_pct = reward["heal_pct"]
+        if self.player.faction == "太阳":
+            heal_pct *= 1.5
+        healed = rest_heal(self.player, heal_pct)
+        # 经验
+        base_exp = 80 + self.wave * 30 + (150 if self.is_boss else 0)
+        exp_res = gain_exp(self.player, base_exp)
         self.log.add(f"🎉🎉🎉 第 {self.wave} 波胜利！")
-        self.log.add(f"🎁 奖励：资金+¥{reward['money']}，HP恢复+{healed}，得分+{reward['score']}")
+        self.log.add(f"🎁 奖励：资金+¥{reward_money}（阵营倍率×{money_mult}），HP恢复+{healed}，得分+{reward['score']}")
+        self.log.add(f"✨ 经验+{exp_res['exp_gained']}（当前 Lv.{self.player.player_level} 经验 {self.player.player_exp}/{PLAYER_LEVEL_EXP[min(self.player.player_level-1, len(PLAYER_LEVEL_EXP)-1)] if self.player.player_level-1 < len(PLAYER_LEVEL_EXP) else 'MAX'}）")
+        if exp_res["leveled_up"]:
+            self.log.add(f"⬆️ 玩家升级！Lv.{exp_res['new_level']}（攻击/HP已提升）")
+        # 尝试解锁新阵营（基于波次和已拥有的人格面具的arcana）
+        owned_arcana = []
+        for pid in self.player.owned_personas:
+            if pid in CARD_DB:
+                arc = CARD_DB[pid].arcana
+                if arc and arc not in owned_arcana:
+                    owned_arcana.append(arc)
+        old = set(self.available_factions)
+        new_unlock = get_unlocked_factions(self.wave, owned_arcana)
+        self.available_factions = new_unlock
+        added = set(new_unlock) - old
+        for arc in added:
+            if arc not in INITIAL_FACTIONS:
+                self.log.add(f"🔓 解锁阵营：{arc}（{ARCANA_DB[arc].bonus_desc}）")
+        # BOSS战额外掉落人格面具
+        if self.is_boss and random.random() < 0.6:
+            # 随机掉落未拥有的人格面具
+            all_persona_ids = [cid for cid, c in CARD_DB.items() if c.card_type == CardType.PERSONA]
+            unowned = [pid for pid in all_persona_ids if pid not in self.player.owned_personas]
+            if unowned:
+                drop_id = random.choice(unowned)
+                res = collect_persona(self.player, drop_id, CARD_DB)
+                self.log.add(f"💎 BOSS掉落：{res['message']}")
         self.phase = PHASE_REST
 
     # ---------- 玩家操作 ----------
@@ -403,18 +483,18 @@ class GameState:
             return
         if card.card_type == CardType.WAND:
             new_card = use_wand(p, CARD_DB)
-            p.hand.remove(card)
+            self._remove_from_hand_by_identity(card)
             if new_card:
                 self.log.add(f"🪄 权杖：获得 {new_card.name}")
             else:
                 self.log.add("🪄 权杖：牌库中无可获得的高阶卡")
         elif card.card_type == CardType.CUP:
             use_cup(p)
-            p.hand.remove(card)
+            self._remove_from_hand_by_identity(card)
             self.log.add(f"🏆 圣杯：本回合伤害 +50%（当前层数 {p.cup_stack}）")
         elif card.card_type == CardType.PENTACLE:
             gain = use_pentacle(p, self.turn)
-            p.hand.remove(card)
+            self._remove_from_hand_by_identity(card)
             self.log.add(f"💰 星币：获得 ¥{gain}")
         elif card.card_type == CardType.THEURGY:
             if len(p.theurgy_cards) >= 3:
@@ -422,7 +502,7 @@ class GameState:
                 return
             msgs = use_theurgy(p, card, self.enemies)
             p.theurgy_cards.append(card)
-            p.hand.remove(card)
+            self._remove_from_hand_by_identity(card)
             for m in msgs:
                 self.log.add(m)
         elif card.card_type == CardType.ALL_OUT:
@@ -434,9 +514,24 @@ class GameState:
                 res = calculate_damage(skill, p.attack, enemy.affinities, enemy.is_knocked_down, p.cup_stack, p.crit_rate, faction_mult)
                 enemy.hp = max(0, enemy.hp - res.damage)
                 self.log.add(f"💥 总攻击对 {enemy.name} 造成 {res.damage} 伤害！")
-            p.hand.remove(card)
+            self._remove_from_hand_by_identity(card)
         else:
             self.log.add(f"❌ {card.name} 不是辅助卡，请通过构筑使用")
+
+    def _remove_from_hand_by_identity(self, card: Card) -> bool:
+        """按对象身份从手牌移除卡牌（避免同名卡牌因 dataclass 相等性被误删）。
+        返回是否成功移除。
+        """
+        p = self.player
+        for i, c in enumerate(p.hand):
+            if c is card:
+                p.hand.pop(i)
+                return True
+        return False
+
+    def _card_in_slots_by_identity(self, card: Card) -> bool:
+        """按对象身份检查卡牌是否已在构筑槽中"""
+        return any(c is card for c in self.slots)
 
     def _put_card(self, card_ref: str, slot_ref: str) -> None:
         p = self.player
@@ -455,34 +550,54 @@ class GameState:
         if not (0 <= slot_idx < 5):
             self.log.add("❌ 槽位需在 1-5 之间")
             return
-        if card in self.slots:
+        if self._card_in_slots_by_identity(card):
             self.log.add(f"❌ {card.name} 已在构筑槽中")
             return
-        if card in p.hand:
-            p.hand.remove(card)
+        # 按身份移除（修复：原 p.hand.remove(card) 会因 dataclass 相等性误删同名卡）
+        self._remove_from_hand_by_identity(card)
         self.slots[slot_idx] = card
         self.log.add(f"📥 {card.name} 放入 SLOT {slot_idx+1}")
 
     def _put_batch(self, card_nums: list[int]) -> None:
+        """批量放入构筑槽。
+        修复两个 Bug：
+        1. 原实现按 index 顺序遍历，每次 p.hand.remove 后索引偏移，导致后续 num 取到错误的卡
+        2. p.hand.remove(card) / card in self.slots 使用 dataclass 相等性，同名卡牌会被误删/误判
+        现改为：先快照所有目标卡对象，再按对象身份逐一移除并放入空槽
+        """
         p = self.player
-        placed = 0
+        # 去重 + 验证 + 快照卡对象
+        seen_indices: set[int] = set()
+        cards_to_place: list[Card] = []
         for num in card_nums:
             idx = num - 1
+            if idx in seen_indices:
+                continue  # 用户重复选择同一序号，跳过
             if idx < 0 or idx >= len(p.hand):
                 self.log.add(f"❌ 无效手牌序号：{num}")
                 continue
+            seen_indices.add(idx)
             card = p.hand[idx]
             if not card.is_composable and card.card_type not in (CardType.THEURGY, CardType.ALL_OUT):
                 self.log.add(f"❌ {card.name} 不可参与构筑，跳过")
                 continue
-            if card in self.slots:
+            if self._card_in_slots_by_identity(card):
                 self.log.add(f"❌ {card.name} 已在构筑槽中，跳过")
                 continue
+            # 防止同一对象被多次快照（理论上 idx 去重已保证）
+            if any(c is card for c in cards_to_place):
+                continue
+            cards_to_place.append(card)
+
+        placed = 0
+        for card in cards_to_place:
             empty = next((i for i in range(5) if self.slots[i] is None), None)
             if empty is None:
                 self.log.add("❌ 构筑槽已满")
                 break
-            p.hand.remove(card)
+            if not self._remove_from_hand_by_identity(card):
+                # 卡对象已不在手牌中（可能被并发操作移除），跳过
+                continue
             self.slots[empty] = card
             placed += 1
             self.log.add(f"📥 {card.name} → SLOT {empty+1}")
@@ -585,7 +700,11 @@ class GameState:
                     self.log.add(f"🎉 {enemy.name} 被击败！")
 
         for i in range(5):
-            self.slots[i] = None
+            card = self.slots[i]
+            if card is not None:
+                # 构筑后所有卡牌进入弃牌堆（修复：原来直接消失，导致牌库易空）
+                self.player.discard_pile.append(card)
+                self.slots[i] = None
 
         # 构筑成功后推进到敌人回合
         self.battle_state = BattleState.ENEMY_ACTION
@@ -636,4 +755,99 @@ class GameState:
         elif choice == "5":
             self.phase = PHASE_GAME_OVER
             self.game_over_reason = "🏁 你选择结束挑战"
+        elif choice == "6":
+            # 进入天鹅绒房间（局外养成）
+            self.phase = PHASE_VELVET
+            self.log.add("🚪 进入天鹅绒房间...")
+        return self.to_dict()
+
+    # ---------- 天鹅绒房间（局外养成） ----------
+    def velvet_action(self, action: str, params: dict | None = None) -> dict:
+        """天鹅绒房间操作。
+        action: equip / unequip / fuse / buy / list_recipes / list_personas / leave / switch_faction
+        """
+        if self.phase != PHASE_VELVET:
+            return self.to_dict()
+        params = params or {}
+        p = self.player
+
+        if action == "list_personas":
+            owned = []
+            for pid in p.owned_personas:
+                if pid in CARD_DB:
+                    c = CARD_DB[pid]
+                    owned.append({
+                        "card_id": pid,
+                        "name": c.name,
+                        "arcana": c.arcana,
+                        "rank": RANK_NAME[c.rank],
+                        "skill_up": f"{c.skill_upright.element.icon}{c.skill_upright.element.value}·{c.skill_upright.power.name_cn}" if c.skill_upright else "",
+                        "skill_dn": f"{c.skill_reversed.element.icon}{c.skill_reversed.element.value}·{c.skill_reversed.power.name_cn}" if c.skill_reversed else "",
+                        "passive": PERSONA_PASSIVE_MAP.get(pid, ""),
+                        "passive_desc": PASSIVE_DB[PERSONA_PASSIVE_MAP[pid]].desc if pid in PERSONA_PASSIVE_MAP and PERSONA_PASSIVE_MAP[pid] in PASSIVE_DB else "",
+                        "equipped": (p.equipped_persona == pid),
+                    })
+            self.log.add(f"📘 图鉴共 {len(owned)} 张人格面具")
+            return self.to_dict()
+
+        if action == "equip":
+            pid = params.get("persona_id", "")
+            res = equip_persona(p, pid, CARD_DB)
+            self.log.add(res["message"])
+            return self.to_dict()
+
+        if action == "unequip":
+            res = unequip_persona(p)
+            self.log.add(res["message"])
+            return self.to_dict()
+
+        if action == "list_recipes":
+            self.log.add(f"📜 可用合成配方 {len(RECIPE_DB)} 个")
+            return self.to_dict()
+
+        if action == "fuse":
+            recipe_id = params.get("recipe_id", "")
+            if recipe_id not in RECIPE_DB:
+                self.log.add(f"❌ 无效配方：{recipe_id}")
+                return self.to_dict()
+            res = fuse_personas(p, RECIPE_DB[recipe_id], CARD_DB)
+            self.log.add(res["message"])
+            return self.to_dict()
+
+        if action == "buy":
+            pid = params.get("persona_id", "")
+            price = int(params.get("price", 1000))
+            res = buy_persona(p, pid, price, CARD_DB)
+            self.log.add(res["message"])
+            return self.to_dict()
+
+        if action == "switch_faction":
+            new_faction = params.get("faction", "")
+            if new_faction not in self.available_factions:
+                self.log.add(f"❌ 阵营未解锁：{new_faction}")
+                return self.to_dict()
+            if new_faction == p.faction:
+                self.log.add(f"❌ 当前已是该阵营")
+                return self.to_dict()
+            old_faction = p.faction
+            p.faction = new_faction
+            # 切换阵营后重建初始牌库
+            faction_data = ARCANA_DB[new_faction]
+            p.deck = build_initial_deck(faction_data.persona_pool, CARD_DB)
+            p.hand = []
+            p.discard_pile = []
+            # 加入新阵营的人格面具到图鉴
+            for pid in faction_data.persona_pool:
+                if pid not in p.owned_personas:
+                    p.owned_personas.append(pid)
+            recompute_after_growth(p)
+            self.log.add(f"🔄 阵营切换：{old_faction} → {new_faction}（牌库已重置）")
+            return self.to_dict()
+
+        if action == "leave":
+            self.phase = PHASE_REST
+            self.log.add("🚪 离开天鹅绒房间")
+            return self.to_dict()
+
+        self.log.add(f"❓ 未知的天鹅绒房间操作：{action}")
         return self.to_dict()
