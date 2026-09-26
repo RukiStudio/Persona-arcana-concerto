@@ -4,7 +4,7 @@
 import {
   ELEMENT, ELEMENT_INFO, POWER_INFO, RANK_LABEL, CARD_TYPE, AFFINITY,
   ENVIRONMENT_INFO,
-} from "./data.js?v=10";
+} from "./data.js?v=11";
 import { getActiveSkill, calcBaseDamage } from "./core.js?v=10";
 
 export class UI {

@@ -6,22 +6,69 @@ import {
   EXP_CURVE, MAX_PLAYER_LEVEL, STAT_POINTS_PER_LEVEL,
   STAT_UPGRADE_COSTS, STAT_INCREMENTS,
   STARTING_PERSONAS, RANK,
-} from "./data.js?v=10";
+} from "./data.js?v=11";
 
-const SAVE_KEY = "persona_concerto_save_v1";
+const SAVE_KEY = "persona_concerto_save_v1";        // 旧版单存档（迁移用）
+const PROFILES_KEY = "persona_concerto_profiles_v1"; // 多玩家档案（每个玩家独立存档）
+
+// 读取所有玩家档案
+function readProfiles() {
+  try {
+    const raw = localStorage.getItem(PROFILES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) { return {}; }
+}
+function writeProfiles(profiles) {
+  try { localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles)); } catch (e) { /* ignore */ }
+}
+
+// 旧版存档迁移：将单存档转为"默认玩家"档案
+function migrateLegacySave() {
+  const raw = localStorage.getItem(SAVE_KEY);
+  if (!raw) return;
+  const profiles = readProfiles();
+  if (!profiles["默认玩家"]) {
+    try {
+      profiles["默认玩家"] = JSON.parse(raw);
+      writeProfiles(profiles);
+    } catch (e) { /* ignore */ }
+  }
+  localStorage.removeItem(SAVE_KEY);
+}
 
 export class MetaState {
-  constructor() {
+  constructor(profileName = "默认玩家") {
+    // 首次加载时迁移旧存档
+    migrateLegacySave();
+    this.profileName = profileName;
     this.load();
+  }
+
+  // ---------- 玩家档案管理（静态方法） ----------
+  static listProfiles() {
+    migrateLegacySave();
+    const profiles = readProfiles();
+    return Object.keys(profiles);
+  }
+
+  static createProfile(name) {
+    const profiles = readProfiles();
+    if (profiles[name]) return { ok: false, msg: "该玩家名已存在" };
+    profiles[name] = null; // null 表示新存档，load 时使用默认值
+    writeProfiles(profiles);
+    return { ok: true };
+  }
+
+  static deleteProfile(name) {
+    const profiles = readProfiles();
+    delete profiles[name];
+    writeProfiles(profiles);
   }
 
   // ---------- 存档 ----------
   load() {
-    let saved = null;
-    try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (raw) saved = JSON.parse(raw);
-    } catch (e) { /* ignore */ }
+    const profiles = readProfiles();
+    const saved = profiles[this.profileName] || null;
 
     this.playerLevel = saved?.playerLevel ?? 1;
     this.exp = saved?.exp ?? 0;
@@ -57,13 +104,15 @@ export class MetaState {
       bonusTheurgyMax: this.bonusTheurgyMax,
       arcanaLevels: this.arcanaLevels,
     };
-    try {
-      localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-    } catch (e) { /* ignore */ }
+    const profiles = readProfiles();
+    profiles[this.profileName] = data;
+    writeProfiles(profiles);
   }
 
   reset() {
-    localStorage.removeItem(SAVE_KEY);
+    const profiles = readProfiles();
+    profiles[this.profileName] = null;
+    writeProfiles(profiles);
     this.load();
   }
 

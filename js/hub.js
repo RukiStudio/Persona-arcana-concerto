@@ -5,8 +5,8 @@ import {
   PERSONAS, ARCANA, ARCANA_LIST, STAGES, SHOP_ITEMS,
   ELEMENT_INFO, POWER_INFO, RANK_LABEL, RANK, AFFINITY, ELEMENT,
   STAT_UPGRADE_COSTS, STAT_INCREMENTS, EXP_CURVE, MAX_PLAYER_LEVEL,
-} from "./data.js?v=10";
-import { MetaState } from "./meta.js?v=10";
+} from "./data.js?v=11";
+import { MetaState } from "./meta.js?v=11";
 import { getFusionResult, executeFusion, getAvailableFusions } from "./fusion.js?v=10";
 
 export class Hub {

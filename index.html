@@ -4,16 +4,31 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>女神异闻录：阿尔卡那协奏</title>
-  <link rel="stylesheet" href="css/style.css?v=10" />
+  <link rel="stylesheet" href="css/style.css?v=11" />
 </head>
 <body>
+  <!-- ============ 玩家档案选择 ============ -->
+  <div id="profile-screen" class="profile-screen">
+    <div class="profile-card">
+      <h1 class="profile-title">女神异闻录 · 阿尔卡那协奏</h1>
+      <p class="profile-subtitle">选择玩家档案（每人独立存档）</p>
+      <div id="profile-list" class="profile-list"></div>
+      <div class="profile-create">
+        <input id="profile-name-input" class="profile-input" type="text" maxlength="12" placeholder="输入新玩家名" />
+        <button id="profile-create-btn" class="cut-btn confirm">创建档案</button>
+      </div>
+      <p id="profile-msg" class="profile-msg"></p>
+    </div>
+  </div>
+
   <!-- ============ 局外养成 Hub 屏幕 ============ -->
-  <div id="hub-screen" class="hub-screen">
+  <div id="hub-screen" class="hub-screen hidden">
     <header class="hub-header">
       <div class="hub-title-area">
         <h1 class="hub-title">女神异闻录 · 阿尔卡那协奏</h1>
-        <span class="hub-subtitle">VELVET ROOM — 局外养成</span>
+        <span class="hub-subtitle">VELVET ROOM — 局外养成 · <span id="hub-profile-name" class="gold">玩家</span></span>
       </div>
+      <button id="btn-switch-profile" class="cut-btn" title="切换玩家档案">切换玩家</button>
       <div class="hub-player-info">
         <div class="hub-stat-block">
           <span class="hub-stat-label">LEVEL</span>
@@ -158,6 +173,6 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=10"></script>
+  <script type="module" src="js/main.js?v=11"></script>
 </body>
 </html>

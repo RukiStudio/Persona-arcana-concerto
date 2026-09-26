@@ -82,7 +82,7 @@ export const ARCANA = {
     id: "FOOL", name: "愚者", icon: "🃏",
     bonusLevels: ["首次构筑+1阶", "首次2次构筑+1阶", "所有构筑+1阶"],
     bonusKey: "FOOL_FIRST",
-    persona_pool: ["orpheus", "slime", "ghost_brigade", "arsene"],
+    persona_pool: ["orpheus", "slime", "ghost_brigade", "arsene", "izanagi"],
   },
   MAGICIAN: {
     id: "MAGICIAN", name: "魔术师", icon: "🪄",
@@ -100,73 +100,73 @@ export const ARCANA = {
     id: "PRIESTESS", name: "女教皇", icon: "🌙",
     bonusLevels: ["首张手牌力度+1", "首张手牌力度+2", "首张手牌力度+2且首张免费"],
     bonusKey: "FIRST_CARD_UP",
-    persona_pool: ["juno", "apsaras", "unicorn"],
+    persona_pool: ["juno", "apsaras", "unicorn", "sarasvati", "skadi"],
   },
   EMPRESS: {
     id: "EMPRESS", name: "女皇", icon: "👑",
     bonusLevels: ["圣杯+50%", "圣杯效果翻倍", "圣杯+150%"],
     bonusKey: "CUP_DOUBLE",
-    persona_pool: ["artemisia", "penthesilea", "leanan_sidhe"],
+    persona_pool: ["artemisia", "penthesilea", "leanan_sidhe", "yaksini", "hariti"],
   },
   EMPEROR: {
     id: "EMPEROR", name: "皇帝", icon: "⚡",
     bonusLevels: ["电击+10%", "电击+20%且+1阶", "电击+30%且+1阶且范围转ALL"],
     bonusKey: "ELEC_DMG",
-    persona_pool: ["polydeuces", "oberon", "take_mikazuchi"],
+    persona_pool: ["polydeuces", "oberon", "take_mikazuchi", "ose", "thor"],
   },
   HIEROPHANT: {
     id: "HIEROPHANT", name: "教皇", icon: "⛪",
     bonusLevels: ["+¥30/回合", "+¥60/回合", "+¥80/回合且起手+¥100"],
     bonusKey: "EXTRA_INCOME",
-    persona_pool: ["berith", "shiisaa"],
+    persona_pool: ["berith", "shiisaa", "mokoi", "anubis", "mot"],
   },
   CHARIOT: {
     id: "CHARIOT", name: "战车", icon: "🛡",
     bonusLevels: ["物理+5%", "物理+10%", "物理+15%"],
     bonusKey: "PHYS_DMG",
-    persona_pool: ["athena", "captain_kidd"],
+    persona_pool: ["athena", "captain_kidd", "triglav", "siegfried", "futsunushi"],
   },
   JUSTICE: {
     id: "JUSTICE", name: "正义", icon: "⚖",
     bonusLevels: ["暴击+5%", "暴击+10%且暴击回5%HP", "暴击+15%且暴击回10%且无视抗性"],
     bonusKey: "CRIT_UP",
-    persona_pool: ["kala_nemi", "archangel", "principality"],
+    persona_pool: ["kala_nemi", "archangel", "principality", "power", "dominion"],
   },
   HERMIT: {
     id: "HERMIT", name: "隐者", icon: "🔦",
     bonusLevels: ["多抽1张", "多抽2张", "多抽2张且可看牌顶"],
     bonusKey: "EXTRA_DRAW",
-    persona_pool: ["naga"],
+    persona_pool: ["naga", "mothman", "vasuki", "white_rider", "ananta"],
   },
   FORTUNE: {
     id: "FORTUNE", name: "命运", icon: "🎲",
     bonusLevels: ["逆位上限+1", "逆位上限+2", "逆位上限+3且逆位牌力度+1"],
     bonusKey: "EXTRA_REVERSE",
-    persona_pool: ["fortuna", "sandman"],
+    persona_pool: ["fortuna", "sandman", "clotho", "atropos", "lachesis"],
   },
   STRENGTH: {
     id: "STRENGTH", name: "力量", icon: "💪",
     bonusLevels: ["攻击+5%", "攻击+10%", "攻击+15%"],
     bonusKey: "FLAT_ATK",
-    persona_pool: ["valkyrie", "rakshasa", "matador"],
+    persona_pool: ["valkyrie", "rakshasa", "matador", "kin_ki", "gurr"],
   },
   HANGED: {
     id: "HANGED", name: "倒悬者", icon: "🙃",
     bonusLevels: ["翻转不耗操作(1次/回合)", "翻转不耗操作(2次/回合)", "翻转不耗操作(3次/回合)"],
     bonusKey: "FREE_FLIP",
-    persona_pool: ["inugami", "take_minakata"],
+    persona_pool: ["inugami", "take_minakata", "yomotsu_shikome", "neko_shogun", "orlov"],
   },
   DEATH: {
     id: "DEATH", name: "死神", icon: "💀",
     bonusLevels: ["击杀回15%HP", "击杀回25%HP", "击杀回25%且<30%血处决+50%"],
     bonusKey: "KILL_HEAL",
-    persona_pool: ["pisaca", "pale_rider"],
+    persona_pool: ["pisaca", "pale_rider", "samael", "alice", "thanatos"],
   },
   TEMPERANCE: {
     id: "TEMPERANCE", name: "节制", icon: "🌀",
     bonusLevels: ["减伤10%", "减伤15%且回合回5%HP", "减伤20%且回合回10%HP"],
     bonusKey: "DAMAGE_REDUCE",
-    persona_pool: ["nigi_mitama", "mitra"],
+    persona_pool: ["nigi_mitama", "mitra", "genbu", "byakko", "suzaku"],
   },
 };
 
@@ -179,9 +179,12 @@ export const SKILLS = {
   // 物理
   cleave: { name: " Cleave", element: ELEMENT.PHYSICAL, power: POWER.MD, range: RANGE.SINGLE },
   mighty_swing: { name: "Mighty Swing", element: ELEMENT.PHYSICAL, power: POWER.LG, range: RANGE.SINGLE },
+  igo: { name: "Igo", element: ELEMENT.PHYSICAL, power: POWER.LG, range: RANGE.SINGLE },
   fatal_end: { name: "Fatal End", element: ELEMENT.PHYSICAL, power: POWER.HV, range: RANGE.SINGLE },
   blade_of_fury: { name: "Blade of Fury", element: ELEMENT.PHYSICAL, power: POWER.LG, range: RANGE.ALL },
+  gigantomachia: { name: "Gigantomachia", element: ELEMENT.PHYSICAL, power: POWER.HV, range: RANGE.ALL },
   god_hand: { name: "God Hand", element: ELEMENT.PHYSICAL, power: POWER.XH, range: RANGE.SINGLE },
+  brave_blade: { name: "Brave Blade", element: ELEMENT.PHYSICAL, power: POWER.LG, range: RANGE.SINGLE },
   // 火焰
   agi: { name: "Agi", element: ELEMENT.FIRE, power: POWER.SM, range: RANGE.SINGLE },
   agilao: { name: "Agilao", element: ELEMENT.FIRE, power: POWER.MD, range: RANGE.SINGLE },
@@ -212,11 +215,15 @@ export const SKILLS = {
   hamaon: { name: "Hamaon", element: ELEMENT.BLESS, power: POWER.MD, range: RANGE.SINGLE },
   mahama: { name: "Mahama", element: ELEMENT.BLESS, power: POWER.MD, range: RANGE.ALL },
   kouga: { name: "Kouga", element: ELEMENT.BLESS, power: POWER.LG, range: RANGE.SINGLE },
+  kougaon: { name: "Kougaon", element: ELEMENT.BLESS, power: POWER.LG, range: RANGE.SINGLE },
+  mahamaon: { name: "Mahamaon", element: ELEMENT.BLESS, power: POWER.LG, range: RANGE.ALL },
   // 咒怨
   mudo: { name: "Mudo", element: ELEMENT.CURSE, power: POWER.SM, range: RANGE.SINGLE },
   mudoon: { name: "Mudoon", element: ELEMENT.CURSE, power: POWER.MD, range: RANGE.SINGLE },
   mamudo: { name: "Mamudo", element: ELEMENT.CURSE, power: POWER.MD, range: RANGE.ALL },
   eiga: { name: "Eiga", element: ELEMENT.CURSE, power: POWER.LG, range: RANGE.SINGLE },
+  eigaon: { name: "Eigaon", element: ELEMENT.CURSE, power: POWER.LG, range: RANGE.SINGLE },
+  mamudoon: { name: "Mamudoon", element: ELEMENT.CURSE, power: POWER.LG, range: RANGE.ALL },
   // 万能
   megido: { name: "Megido", element: ELEMENT.ALMIGHTY, power: POWER.MD, range: RANGE.ALL },
   megidola: { name: "Megidola", element: ELEMENT.ALMIGHTY, power: POWER.HV, range: RANGE.ALL },
@@ -261,6 +268,11 @@ export const PERSONAS = {
     name: "亚森", arcana: "FOOL", rank: RANK.A, icon: "🦊", level: 23,
     affinities: { BLESS: W, CURSE: R },
     upright: SKILLS.cleave, reversed: SKILLS.eiga,
+  },
+  izanagi: {
+    name: "伊邪那岐", arcana: "FOOL", rank: RANK.B, icon: "⚔", level: 1,
+    affinities: { PHYSICAL: R, ELEC: R, WIND: W },
+    upright: SKILLS.zio, reversed: SKILLS.cleave,
   },
   // 高阶
   orpheus_tel: {
@@ -365,6 +377,16 @@ export const PERSONAS = {
     affinities: { ICE: N, WIND: W, BLESS: N, CURSE: W },
     upright: SKILLS.hama, reversed: SKILLS.diarama,
   },
+  sarasvati: {
+    name: "娑罗室伐底", arcana: "PRIESTESS", rank: RANK.C, icon: "🎵", level: 5,
+    affinities: { ICE: W, ELEC: R },
+    upright: SKILLS.dia, reversed: SKILLS.bufu,
+  },
+  skadi: {
+    name: "斯卡蒂", arcana: "PRIESTESS", rank: RANK.A, icon: "❄", level: 22,
+    affinities: { ICE: R, FIRE: W, ELEC: R },
+    upright: SKILLS.bufudyne, reversed: SKILLS.mabufudyne,
+  },
 
   // ===== 女皇 EMPRESS =====
   artemisia: {
@@ -381,6 +403,16 @@ export const PERSONAS = {
     name: "拉南希", arcana: "EMPRESS", rank: RANK.B, icon: "🦋", level: 21,
     affinities: { FIRE: W, WIND: R },
     upright: SKILLS.magaru, reversed: SKILLS.diarama,
+  },
+  yaksini: {
+    name: "夜支尼", arcana: "EMPRESS", rank: RANK.B, icon: "🗡", level: 14,
+    affinities: { PHYSICAL: R, WIND: W },
+    upright: SKILLS.cleave, reversed: SKILLS.garula,
+  },
+  hariti: {
+    name: "诃利帝母", arcana: "EMPRESS", rank: RANK.A, icon: "👩‍👧", level: 24,
+    affinities: { BLESS: R, CURSE: W, ICE: W },
+    upright: SKILLS.diarama, reversed: SKILLS.hamaon,
   },
 
   // ===== 皇帝 EMPEROR =====
@@ -399,6 +431,16 @@ export const PERSONAS = {
     affinities: { PHYSICAL: R, ELEC: N, WIND: W },
     upright: SKILLS.zionga, reversed: SKILLS.mighty_swing,
   },
+  ose: {
+    name: "欧塞", arcana: "EMPEROR", rank: RANK.B, icon: "👹", level: 12,
+    affinities: { PHYSICAL: R, ELEC: W, ICE: W },
+    upright: SKILLS.cleave, reversed: SKILLS.tarukaja,
+  },
+  thor: {
+    name: "托尔", arcana: "EMPEROR", rank: RANK.A, icon: "🔨", level: 25,
+    affinities: { PHYSICAL: R, ELEC: N, WIND: W },
+    upright: SKILLS.ziodyne, reversed: SKILLS.maziodyne,
+  },
 
   // ===== 教皇 HIEROPHANT =====
   berith: {
@@ -411,6 +453,21 @@ export const PERSONAS = {
     affinities: { PHYSICAL: R, FIRE: W, ICE: N, BLESS: R },
     upright: SKILLS.agilao, reversed: SKILLS.hama,
   },
+  mokoi: {
+    name: "莫科伊", arcana: "HIEROPHANT", rank: RANK.C, icon: "🪃", level: 8,
+    affinities: { PHYSICAL: R, FIRE: W },
+    upright: SKILLS.cleave, reversed: SKILLS.agi,
+  },
+  anubis: {
+    name: "阿努比斯", arcana: "HIEROPHANT", rank: RANK.B, icon: "🐺", level: 18,
+    affinities: { BLESS: W, CURSE: R, PHYSICAL: R },
+    upright: SKILLS.mudoon, reversed: SKILLS.cleave,
+  },
+  mot: {
+    name: "莫特", arcana: "HIEROPHANT", rank: RANK.A, icon: "💀", level: 26,
+    affinities: { BLESS: N, CURSE: N, PHYSICAL: R, FIRE: W },
+    upright: SKILLS.eigaon, reversed: SKILLS.kougaon,
+  },
 
   // ===== 战车 CHARIOT =====
   athena: {
@@ -422,6 +479,21 @@ export const PERSONAS = {
     name: "船长基德", arcana: "CHARIOT", rank: RANK.B, icon: "🏴‍☠️", level: 18,
     affinities: { ELEC: R, WIND: W },
     upright: SKILLS.zionga, reversed: SKILLS.cleave,
+  },
+  triglav: {
+    name: "特里格拉夫", arcana: "CHARIOT", rank: RANK.B, icon: "🛡", level: 13,
+    affinities: { PHYSICAL: R, FIRE: W, ICE: W },
+    upright: SKILLS.mighty_swing, reversed: SKILLS.tarukaja,
+  },
+  siegfried: {
+    name: "齐格弗里德", arcana: "CHARIOT", rank: RANK.A, icon: "⚔", level: 25,
+    affinities: { PHYSICAL: N, FIRE: W, ELEC: R },
+    upright: SKILLS.igo, reversed: SKILLS.brave_blade,
+  },
+  futsunushi: {
+    name: "经津主神", arcana: "CHARIOT", rank: RANK.A, icon: "🗡", level: 28,
+    affinities: { PHYSICAL: R, WIND: N, FIRE: W },
+    upright: SKILLS.god_hand, reversed: SKILLS.garudyne,
   },
 
   // ===== 正义 JUSTICE =====
@@ -440,12 +512,42 @@ export const PERSONAS = {
     affinities: { FIRE: R, BLESS: N, CURSE: W },
     upright: SKILLS.hamaon, reversed: SKILLS.mahama,
   },
+  power: {
+    name: "力天使", arcana: "JUSTICE", rank: RANK.B, icon: "💪", level: 12,
+    affinities: { PHYSICAL: R, BLESS: R, CURSE: W },
+    upright: SKILLS.hama, reversed: SKILLS.cleave,
+  },
+  dominion: {
+    name: "座天使", arcana: "JUSTICE", rank: RANK.A, icon: "👼", level: 20,
+    affinities: { BLESS: N, CURSE: W, ELEC: R },
+    upright: SKILLS.kouga, reversed: SKILLS.mahamaon,
+  },
 
   // ===== 隐者 HERMIT =====
   naga: {
     name: "那伽", arcana: "HERMIT", rank: RANK.B, icon: "🐉", level: 17,
     affinities: { PHYSICAL: W, ELEC: R, CURSE: R },
     upright: SKILLS.zionga, reversed: SKILLS.rakukaja,
+  },
+  mothman: {
+    name: "天蛾人", arcana: "HERMIT", rank: RANK.C, icon: "🦋", level: 6,
+    affinities: { WIND: R, ELEC: W },
+    upright: SKILLS.garu, reversed: SKILLS.magaru,
+  },
+  vasuki: {
+    name: "婆苏吉", arcana: "HERMIT", rank: RANK.B, icon: "🐍", level: 12,
+    affinities: { ICE: R, ELEC: W, PHYSICAL: W },
+    upright: SKILLS.bufula, reversed: SKILLS.zio,
+  },
+  white_rider: {
+    name: "白骑士", arcana: "HERMIT", rank: RANK.A, icon: "🏇", level: 22,
+    affinities: { BLESS: R, CURSE: W, ICE: N },
+    upright: SKILLS.hamaon, reversed: SKILLS.mamudo,
+  },
+  ananta: {
+    name: "阿南塔", arcana: "HERMIT", rank: RANK.A, icon: "🐲", level: 28,
+    affinities: { PHYSICAL: R, ELEC: R, ICE: N, FIRE: W },
+    upright: SKILLS.megido, reversed: SKILLS.debilitate,
   },
 
   // ===== 命运 FORTUNE =====
@@ -458,6 +560,21 @@ export const PERSONAS = {
     name: "睡魔", arcana: "FORTUNE", rank: RANK.B, icon: "😴", level: 20,
     affinities: { FIRE: N, ICE: W, ELEC: W, WIND: N },
     upright: SKILLS.megido, reversed: SKILLS.debilitate,
+  },
+  clotho: {
+    name: "克洛托", arcana: "FORTUNE", rank: RANK.C, icon: "🧵", level: 8,
+    affinities: { ELEC: W, WIND: R },
+    upright: SKILLS.tarukaja, reversed: SKILLS.garu,
+  },
+  atropos: {
+    name: "阿特洛波斯", arcana: "FORTUNE", rank: RANK.B, icon: "✂", level: 14,
+    affinities: { FIRE: W, ELEC: R },
+    upright: SKILLS.zionga, reversed: SKILLS.megido,
+  },
+  lachesis: {
+    name: "拉刻西斯", arcana: "FORTUNE", rank: RANK.A, icon: "📏", level: 20,
+    affinities: { FIRE: N, WIND: N, ELEC: W },
+    upright: SKILLS.megidola, reversed: SKILLS.debilitate,
   },
 
   // ===== 力量 STRENGTH =====
@@ -476,6 +593,16 @@ export const PERSONAS = {
     affinities: { FIRE: W, WIND: N, CURSE: RP },
     upright: SKILLS.garudyne, reversed: SKILLS.debilitate,
   },
+  kin_ki: {
+    name: "金鬼", arcana: "STRENGTH", rank: RANK.B, icon: "👺", level: 14,
+    affinities: { PHYSICAL: R, FIRE: W, ELEC: R },
+    upright: SKILLS.mighty_swing, reversed: SKILLS.zionga,
+  },
+  gurr: {
+    name: "迦楼罗", arcana: "STRENGTH", rank: RANK.A, icon: "🦅", level: 24,
+    affinities: { PHYSICAL: R, WIND: N, FIRE: R },
+    upright: SKILLS.igo, reversed: SKILLS.garudyne,
+  },
 
   // ===== 倒悬者 HANGED =====
   inugami: {
@@ -487,6 +614,21 @@ export const PERSONAS = {
     name: "建御名方", arcana: "HANGED", rank: RANK.A, icon: "🌊", level: 20,
     affinities: { PHYSICAL: R, FIRE: R, ELEC: R, BLESS: W, CURSE: W },
     upright: SKILLS.agidyne, reversed: SKILLS.mabufudyne,
+  },
+  yomotsu_shikome: {
+    name: "黄泉丑女", arcana: "HANGED", rank: RANK.C, icon: "👹", level: 6,
+    affinities: { CURSE: R, BLESS: W },
+    upright: SKILLS.mudo, reversed: SKILLS.cleave,
+  },
+  neko_shogun: {
+    name: "猫将军", arcana: "HANGED", rank: RANK.B, icon: "🐈", level: 16,
+    affinities: { PHYSICAL: R, CURSE: N, BLESS: W },
+    upright: SKILLS.cleave, reversed: SKILLS.mudoon,
+  },
+  orlov: {
+    name: "奥尔洛夫", arcana: "HANGED", rank: RANK.A, icon: "💎", level: 24,
+    affinities: { BLESS: R, CURSE: R, PHYSICAL: W },
+    upright: SKILLS.kougaon, reversed: SKILLS.eigaon,
   },
 
   // ===== 死神 DEATH =====
@@ -500,6 +642,21 @@ export const PERSONAS = {
     affinities: { WIND: R, BLESS: W, CURSE: RP },
     upright: SKILLS.eiga, reversed: SKILLS.mamudo,
   },
+  samael: {
+    name: "萨麦尔", arcana: "DEATH", rank: RANK.B, icon: "☠", level: 16,
+    affinities: { CURSE: R, BLESS: W, FIRE: W },
+    upright: SKILLS.mudoon, reversed: SKILLS.eiga,
+  },
+  alice: {
+    name: "爱丽丝", arcana: "DEATH", rank: RANK.A, icon: "👧", level: 25,
+    affinities: { CURSE: N, BLESS: N, FIRE: R, ICE: W },
+    upright: SKILLS.eigaon, reversed: SKILLS.diarama,
+  },
+  thanatos: {
+    name: "塔纳托斯", arcana: "DEATH", rank: RANK.A, icon: "💀", level: 30,
+    affinities: { CURSE: R, BLESS: W, PHYSICAL: R, ELEC: R },
+    upright: SKILLS.eigaon, reversed: SKILLS.megidola,
+  },
 
   // ===== 节制 TEMPERANCE =====
   nigi_mitama: {
@@ -511,6 +668,21 @@ export const PERSONAS = {
     name: "密特拉", arcana: "TEMPERANCE", rank: RANK.A, icon: "🔆", level: 22,
     affinities: { ICE: N, ELEC: W, BLESS: N },
     upright: SKILLS.mediarama, reversed: SKILLS.samarecarm,
+  },
+  genbu: {
+    name: "玄武", arcana: "TEMPERANCE", rank: RANK.B, icon: "🐢", level: 14,
+    affinities: { ICE: R, PHYSICAL: R, FIRE: W },
+    upright: SKILLS.bufula, reversed: SKILLS.rakukaja,
+  },
+  byakko: {
+    name: "白虎", arcana: "TEMPERANCE", rank: RANK.A, icon: "🐅", level: 24,
+    affinities: { PHYSICAL: R, WIND: N, FIRE: W },
+    upright: SKILLS.mighty_swing, reversed: SKILLS.garula,
+  },
+  suzaku: {
+    name: "朱雀", arcana: "TEMPERANCE", rank: RANK.A, icon: "🐦", level: 22,
+    affinities: { FIRE: R, BLESS: R, ICE: W },
+    upright: SKILLS.agilao, reversed: SKILLS.media,
   },
 
   // ===== 神通法卡池 =====

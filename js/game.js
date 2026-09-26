@@ -6,7 +6,7 @@ import {
   CARD_TYPE, RANK, RANK_LABEL, POWER, RANGE, ELEMENT, AFFINITY,
   STARTING_PERSONAS,
   nextId,
-} from "./data.js?v=10";
+} from "./data.js?v=11";
 import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=10";
 
 // 卡牌工厂
