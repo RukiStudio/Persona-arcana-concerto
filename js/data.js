@@ -59,6 +59,7 @@ export const CARD_TYPE = {
   PERSONA: "PERSONA", SWORD: "SWORD",
   WAND: "WAND", CUP: "CUP", PENTACLE: "PENTACLE",
   THEURGY: "THEURGY", ALL_OUT: "ALL_OUT",
+  ATTACK: "ATTACK", // 构筑合成后产生的攻击牌
 };
 
 // 等阶

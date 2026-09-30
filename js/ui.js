@@ -4,8 +4,8 @@
 import {
   ELEMENT, ELEMENT_INFO, POWER_INFO, RANK_LABEL, CARD_TYPE, AFFINITY,
   ENVIRONMENT_INFO,
-} from "./data.js?v=16";
-import { getActiveSkill, calcBaseDamage } from "./core.js?v=16";
+} from "./data.js?v=17";
+import { getActiveSkill, calcBaseDamage } from "./core.js?v=17";
 
 export class UI {
   constructor(game, onReturnHub) {
@@ -29,8 +29,22 @@ export class UI {
       case "waveStart": this.onWaveStart(data); break;
       case "tutorial": this.onTutorial(data); break;
       case "enemyDeath": this.onEnemyDeath(data); break;
+      case "attackCardCreated": this.onAttackCardCreated(data); break;
+      case "attackCardUsed": break;
     }
     this.render();
+  }
+
+  // 攻击牌生成：在手牌区播放红色脉冲特效
+  onAttackCardCreated(data) {
+    // render 会重建手牌，新攻击牌通过 .type-ATTACK.card-enter 触发生成动画
+    // 额外：手牌区闪一下红光
+    const handArea = document.getElementById("hand-area");
+    if (handArea) {
+      handArea.classList.remove("attack-flash");
+      void handArea.offsetWidth; // 重排以重启动画
+      handArea.classList.add("attack-flash");
+    }
   }
 
   // 敌人被击杀动画：克隆敌人卡片到独立浮层播放动画，避免被 render 覆盖
@@ -251,6 +265,14 @@ export class UI {
     this.renderComposeSlots();
     this.renderResult();
     this.renderHand();
+
+    // 背景特效：持有攻击牌+总攻击牌时变亮；神通法准备好时特效
+    const root = document.getElementById("game-root");
+    const hasAttack = g.hand.some(c => c.type === CARD_TYPE.ATTACK);
+    const hasAllOut = g.hand.some(c => c.type === CARD_TYPE.ALL_OUT);
+    const hasTheurgy = g.hand.some(c => c.type === CARD_TYPE.THEURGY);
+    root.classList.toggle("has-attack-combo", hasAttack && hasAllOut);
+    root.classList.toggle("theurgy-ready", hasTheurgy);
   }
 
   // 渲染局内减益环境徽章
@@ -347,8 +369,10 @@ export class UI {
 
   renderResult() {
     const skill = this.game.getEffectiveComposeSkill();
+    const panel = document.getElementById("result-panel");
     const el = document.getElementById("result-element");
     const pw = document.getElementById("result-power");
+    panel.classList.toggle("attack-preview", !!skill);
     if (skill) {
       const info = ELEMENT_INFO[skill.element];
       el.innerHTML = `<span class="el-${skill.element}">${info.icon} ${info.name} · ${skill.range}</span>`;
@@ -444,13 +468,15 @@ export class UI {
     const t = card.type;
     // 打出动画：克隆一张浮起消散（原元素会被 re-render 销毁）
     this.playCardFx(card);
-    // 辅助卡（权杖/圣杯/星币/总攻击/神通法）双击直接使用
+    // 辅助卡（权杖/圣杯/星币/总攻击/神通法/攻击牌）双击直接使用
     if (t === CARD_TYPE.WAND || t === CARD_TYPE.CUP || t === CARD_TYPE.PENTACLE) {
       this.game.useMinorCard(card);
     } else if (t === CARD_TYPE.ALL_OUT) {
       this.game.useAllOut(card);
     } else if (t === CARD_TYPE.THEURGY) {
       this.game.useTheurgy(card);
+    } else if (t === CARD_TYPE.ATTACK) {
+      this.game.useAttackCard(card);
     } else {
       // 人格面具 / 宝剑：双击直接加入构筑槽
       // 教程 step 5：双击逆位俄耳甫斯直接释放技能（火焰弱点）
@@ -518,7 +544,8 @@ export class UI {
         </div>
       `;
     } else if (skill) {
-      skillsHtml = `<div class="card-skill el-${skill.element}">${info.icon} ${skill.name} · ${skill.range === "ALL" ? "ALL" : "SGL"}</div>`;
+      const sName = skill.name || `${info.name}攻击`;
+      skillsHtml = `<div class="card-skill el-${skill.element}">${info.icon} ${sName} · ${skill.range === "ALL" ? "ALL" : "SGL"}</div>`;
     }
 
     const orient = card.type === CARD_TYPE.PERSONA
@@ -540,6 +567,8 @@ export class UI {
       tooltipText += `\n总攻击：全体大伤害\n需敌人全部倒地后获得`;
     } else if (card.type === CARD_TYPE.THEURGY) {
       tooltipText += `\n神通法：强力一击\n神通法槽满后可用`;
+    } else if (card.type === CARD_TYPE.ATTACK) {
+      tooltipText += `\n${info.name}属性 [${powerLabel}] ${skill.range === "ALL" ? "全体" : "单体"}\n攻击牌：双击直接释放伤害，每回合结束后消失`;
     }
     el.title = tooltipText;
 

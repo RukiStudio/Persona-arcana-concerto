@@ -4,18 +4,20 @@
    ============================================================ */
 
 :root {
-  /* 主色调：深蓝 → 青蓝 → 冰白 */
-  --c-deep: #0a1535;
-  --c-blue-dark: #1a2a6c;
-  --c-blue: #2a7ae4;
-  --c-cyan: #4fc3f7;
-  --c-ice: #e8f0fe;
+  /* 主色调：天蓝 → 水蓝 → 冰白（明亮海洋主题） */
+  --c-deep: #0d2b5c;          /* 深海蓝（强调色） */
+  --c-blue-dark: #1565c0;     /* 深蓝（强调色） */
+  --c-blue: #2196f3;          /* 天蓝 */
+  --c-cyan: #4fc3f7;          /* 水蓝 */
+  --c-ice: #f0f8ff;           /* 冰白 */
+  --c-sky: #e3f2fd;           /* 浅天蓝 */
+  --c-water: #81d4fa;         /* 浅水蓝 */
   /* 强调色 */
-  --c-red: #c41e3a;
-  --c-gold: #d4af37;
-  --c-purple: #8b00ff;
-  --c-green: #00a86b;
-  --c-gray: #808080;
+  --c-red: #e53935;           /* 攻击牌红 */
+  --c-gold: #ffc107;
+  --c-purple: #7c4dff;
+  --c-green: #00c853;
+  --c-gray: #78909c;
   /* 通用 */
   --border-thick: 3px;
   --cut: 12px;
@@ -27,7 +29,7 @@
 
 html, body {
   width: 100%; height: 100%;
-  background: #000;
+  background: linear-gradient(135deg, #0d2b5c 0%, #1565c0 50%, #4fc3f7 100%);
   overflow: hidden;
   font-family: var(--font-cn);
   color: var(--c-ice);
@@ -42,11 +44,47 @@ html, body {
   margin: 0 auto;
   transform-origin: top center;
   background:
-    linear-gradient(180deg, rgba(10,21,53,0.3) 0%, rgba(5,10,31,0.7) 100%),
+    linear-gradient(180deg, rgba(33,150,243,0.35) 0%, rgba(13,43,92,0.6) 100%),
     url("../assets/backgrounds/battle_bg.jpg") center/cover no-repeat;
   overflow: hidden;
   display: grid;
   grid-template-rows: 70px 280px 320px 300px 110px;
+  transition: background 0.6s ease;
+}
+
+/* 持有攻击牌+总攻击牌时：背景变亮 + 发光特效 */
+#game-root.has-attack-combo {
+  background:
+    radial-gradient(ellipse at 50% 60%, rgba(255,200,120,0.35), transparent 60%),
+    linear-gradient(180deg, rgba(79,195,247,0.5) 0%, rgba(21,101,192,0.7) 100%),
+    url("../assets/backgrounds/battle_bg.jpg") center/cover no-repeat;
+  box-shadow: inset 0 0 120px rgba(255,193,7,0.25);
+}
+#game-root.has-attack-combo::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 40%, rgba(255,255,255,0.12), transparent 55%);
+  pointer-events: none;
+  animation: combo-pulse 1.6s ease-in-out infinite;
+}
+@keyframes combo-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.9; }
+}
+
+/* 神通法准备好时：紫色流光特效 */
+#game-root.theurgy-ready::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(124,77,255,0.18) 50%, transparent 70%);
+  background-size: 250% 100%;
+  pointer-events: none;
+  animation: theurgy-shimmer 2.4s linear infinite;
+  z-index: 1;
+}
+@keyframes theurgy-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* 水波纹理覆盖层（通用） */
@@ -79,9 +117,9 @@ html, body {
 #status-bar {
   display: flex; align-items: center; gap: 24px;
   padding: 0 32px;
-  background: linear-gradient(180deg, rgba(26,42,108,0.9), rgba(10,21,53,0.7));
+  background: linear-gradient(180deg, rgba(21,101,192,0.85), rgba(13,43,92,0.7));
   backdrop-filter: blur(8px);
-  border-bottom: var(--border-thick) solid var(--c-blue);
+  border-bottom: var(--border-thick) solid var(--c-cyan);
   z-index: 5;
 }
 .stat-panel, .theurgy-panel, .arcana-panel {
@@ -122,8 +160,8 @@ html, body {
    ============================================================ */
 #enemy-area {
   background:
-    radial-gradient(ellipse at 50% 100%, rgba(139,0,255,0.12), transparent 60%),
-    linear-gradient(180deg, #0a1535 0%, #120a2e 100%);
+    radial-gradient(ellipse at 50% 100%, rgba(124,77,255,0.12), transparent 60%),
+    linear-gradient(180deg, rgba(13,43,92,0.85) 0%, rgba(33,150,243,0.4) 100%);
   display: flex; align-items: center; justify-content: center;
   padding: 20px 40px;
   border-bottom: 1px solid rgba(79,195,247,0.2);
@@ -201,7 +239,7 @@ html, body {
    ③ 构筑区域
    ============================================================ */
 #compose-area {
-  background: linear-gradient(180deg, #0d1b4a 0%, #1a2a6c 100%);
+  background: linear-gradient(180deg, rgba(33,150,243,0.45) 0%, rgba(21,101,192,0.7) 100%);
   display: flex; align-items: center; justify-content: center; gap: 40px;
   padding: 20px 40px;
   position: relative;
@@ -232,7 +270,19 @@ html, body {
   background: linear-gradient(180deg, rgba(26,42,108,0.95), rgba(10,21,53,0.95));
   border: 2px solid var(--c-gold);
   clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+  transition: all 0.3s ease;
 }
+/* 有构筑时：结果面板变为攻击牌预览样式（红色边框+脉动） */
+.result-panel.attack-preview {
+  border-color: var(--c-red);
+  border-width: 3px;
+  background: linear-gradient(160deg, rgba(229,57,53,0.22), rgba(13,43,92,0.92));
+  box-shadow: 0 0 18px rgba(229,57,53,0.55), inset 0 0 14px rgba(229,57,53,0.18);
+  animation: attack-card-glow 1.4s ease-in-out infinite;
+}
+.result-panel.attack-preview .result-title { color: #ffcdd2; }
+.result-panel.attack-preview .result-element { color: #ffebee; text-shadow: 0 0 10px rgba(229,57,53,0.6); }
+.result-panel.attack-preview .result-power { color: #ff8a80; }
 .result-title { color: var(--c-gold); font-family: var(--font-num); font-size: 16px; letter-spacing: 3px; text-align: center; margin-bottom: 8px; }
 .result-element { font-family: var(--font-num); font-size: 30px; font-weight: 700; text-align: center; margin-bottom: 4px; }
 .result-power { text-align: center; font-size: 14px; color: var(--c-cyan); margin-bottom: 10px; }
@@ -255,7 +305,7 @@ html, body {
    ④ 手牌区域
    ============================================================ */
 #hand-area {
-  background: linear-gradient(180deg, #0a1535 0%, #050a1f 100%);
+  background: linear-gradient(180deg, rgba(13,43,92,0.9) 0%, rgba(21,101,192,0.85) 100%);
   display: flex; align-items: center; justify-content: center;
   padding: 10px;
   overflow: hidden;
@@ -264,9 +314,9 @@ html, body {
 .card {
   width: 130px; height: 210px;
   background:
-    linear-gradient(180deg, rgba(26,42,108,0.92), rgba(10,21,53,0.95)),
+    linear-gradient(180deg, rgba(33,150,243,0.75), rgba(13,43,92,0.92)),
     url("../assets/card_frames/card_frame_blue.jpg") center/cover no-repeat;
-  border: 3px solid var(--c-blue);
+  border: 3px solid var(--c-cyan);
   clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
   position: relative;
   cursor: pointer;
@@ -327,13 +377,45 @@ html, body {
 .card.type-CUP { border-color: #4fc3f7; }
 .card.type-PENTACLE { border-color: #ffd700; }
 .card.type-SWORD { border-color: #90a4ae; }
+/* 攻击牌：红色高亮边框 + 脉动发光 */
+.card.type-ATTACK {
+  border-color: var(--c-red);
+  border-width: 4px;
+  box-shadow: 0 0 16px rgba(229,57,53,0.7), inset 0 0 12px rgba(229,57,53,0.25);
+  background: linear-gradient(160deg, rgba(229,57,53,0.18), rgba(13,43,92,0.85));
+  animation: attack-card-glow 1.4s ease-in-out infinite;
+}
+.card.type-ATTACK .card-name { color: #ffcdd2; }
+@keyframes attack-card-glow {
+  0%, 100% { box-shadow: 0 0 16px rgba(229,57,53,0.7), inset 0 0 12px rgba(229,57,53,0.25); }
+  50% { box-shadow: 0 0 28px rgba(229,57,53,0.95), inset 0 0 18px rgba(229,57,53,0.4); }
+}
+/* 攻击牌生成动画：缩放+红光爆发 */
+.card.type-ATTACK.card-enter {
+  animation: attack-spawn 0.55s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+@keyframes attack-spawn {
+  0% { transform: scale(0.3) rotate(-12deg); opacity: 0; filter: brightness(2.5) drop-shadow(0 0 20px #e53935); }
+  60% { transform: scale(1.12) rotate(3deg); opacity: 1; filter: brightness(1.6) drop-shadow(0 0 14px #e53935); }
+  100% { transform: scale(1) rotate(0); opacity: 1; filter: brightness(1); }
+}
+
+/* 手牌区攻击牌生成红光闪烁 */
+#hand-area.attack-flash {
+  animation: hand-attack-flash 0.6s ease-out;
+}
+@keyframes hand-attack-flash {
+  0% { box-shadow: inset 0 0 0 rgba(229,57,53,0); }
+  30% { box-shadow: inset 0 0 60px rgba(229,57,53,0.5); }
+  100% { box-shadow: inset 0 0 0 rgba(229,57,53,0); }
+}
 
 /* ============================================================
    ⑤ 海底操作栏
    ============================================================ */
 #action-bar {
-  background: linear-gradient(180deg, #050a1f 0%, #020510 100%);
-  border-top: var(--border-thick) solid var(--c-blue);
+  background: linear-gradient(180deg, rgba(21,101,192,0.85) 0%, rgba(13,43,92,0.95) 100%);
+  border-top: var(--border-thick) solid var(--c-cyan);
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 32px;
   z-index: 5;

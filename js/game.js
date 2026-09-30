@@ -4,10 +4,11 @@
 import {
   ARCANA, PERSONAS, MINOR_CARDS, ENEMIES, STAGES,
   CARD_TYPE, RANK, RANK_LABEL, POWER, RANGE, ELEMENT, AFFINITY,
+  ELEMENT_INFO, POWER_INFO,
   STARTING_PERSONAS,
   nextId,
-} from "./data.js?v=16";
-import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=16";
+} from "./data.js?v=17";
+import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=17";
 
 // 卡牌工厂
 function makePersonaCard(key) {
@@ -40,6 +41,19 @@ function makeAllOutCard(power) {
     name: "总攻击",
     icon: "💥",
     skill: { name: "All-Out Attack", element: ELEMENT.ALMIGHTY, power, range: RANGE.ALL },
+  };
+}
+// 构筑合成后产生的攻击牌：持有合成技能，双击直接释放
+function makeAttackCard(skill) {
+  const info = ELEMENT_INFO[skill.element] || { name: "?", icon: "⚔" };
+  const pinfo = POWER_INFO[skill.power] || { name: "?", label: "?" };
+  return {
+    id: nextId("atk"),
+    type: CARD_TYPE.ATTACK,
+    name: `攻击牌·${info.name}`,
+    icon: info.icon,
+    skill: { ...skill },
+    powerLabel: pinfo.label,
   };
 }
 
@@ -328,6 +342,8 @@ export class Game {
 
     // 清除总攻击卡
     this.hand = this.hand.filter(c => c.type !== CARD_TYPE.ALL_OUT);
+    // 清除上一回合留下的攻击牌
+    this.hand = this.hand.filter(c => c.type !== CARD_TYPE.ATTACK);
 
     // 敌人意图
     this.rollEnemyIntents();
@@ -352,6 +368,8 @@ export class Game {
     this.player.cupStack = 0;
     // 移除总攻击卡
     this.hand = this.hand.filter(c => c.type !== CARD_TYPE.ALL_OUT);
+    // 移除攻击牌（每回合清除）
+    this.hand = this.hand.filter(c => c.type !== CARD_TYPE.ATTACK);
     this.state = "ENEMY_ACTION";
     this.emit("state");
     this.enemyTurn();
@@ -480,6 +498,8 @@ export class Game {
     // 总攻击卡 / 神通法卡直接打出
     if (card.type === CARD_TYPE.ALL_OUT) { this.useAllOut(card); return true; }
     if (card.type === CARD_TYPE.THEURGY) { this.useTheurgy(card); return true; }
+    // 攻击牌直接释放（不入构筑槽）
+    if (card.type === CARD_TYPE.ATTACK) { this.useAttackCard(card); return true; }
 
     this.hand.splice(idx, 1);
     this.composeSlots.push(card);
@@ -595,7 +615,7 @@ export class Game {
     return true;
   }
 
-  // 确认构筑 → 打出合成技能
+  // 确认构筑 → 消耗构筑牌，生成一张攻击牌加入手牌（双击攻击牌释放技能）
   confirmCompose() {
     if (this.composeSlots.length === 0) { this.log("构筑区为空", "info"); return false; }
     // 环境减益：构筑需至少 2 张牌
@@ -612,15 +632,35 @@ export class Game {
     this.firstComposeThisTurn = false;
 
     const names = this.composeSlots.map(c => c.name).join(" + ");
-    this.log(`构筑：${names} → ${skill.element} ${skill.range}`, "info");
+    this.log(`构筑：${names} → 生成攻击牌（${skill.element} ${skill.range}）`, "info");
 
-    this.composeSlots = []; // 消耗卡牌
-    this.executeSkill(skill, null);
+    this.composeSlots = []; // 消耗构筑卡牌
+    // 生成攻击牌并加入手牌（攻击牌持有合成技能，双击释放）
+    const atkCard = makeAttackCard(skill);
+    this.hand.push(atkCard);
+    this.emit("attackCardCreated", { card: atkCard });
+
     // 教程：首次构筑完成推进 step 2→3
     if (this.isTutorial && this.tutorialStep === 2) {
       this.tutorialStep = 3;
       this.emit("tutorial", { step: 3 });
     }
+    this.emit("state");
+    return true;
+  }
+
+  // 使用攻击牌：直接释放其持有的合成技能
+  useAttackCard(card) {
+    if (this.state !== "PLAYER_ACTION") return false;
+    const idx = this.hand.findIndex(c => c.id === card.id);
+    if (idx < 0) return false;
+    const skill = card.skill;
+    if (!skill) return false;
+    this.hand.splice(idx, 1);
+    this.log(`攻击牌发动：${card.name}（${skill.element} ${POWER_INFO[skill.power]?.label || ""}）`, "info");
+    // 攻击牌的技能已在生成时应用了环境/阵营增益，executeSkill 中 sourceCard=null 不再重复处理
+    this.executeSkill(skill, null);
+    this.emit("attackCardUsed", { card });
     this.emit("state");
     this.checkBattleEnd();
     return true;
@@ -841,6 +881,7 @@ export class Game {
         this.spawnWave(this.waveIndex);
         this.composeSlots = [];
         this.hand = this.hand.filter(c => c.type !== CARD_TYPE.ALL_OUT);
+        this.hand = this.hand.filter(c => c.type !== CARD_TYPE.ATTACK);
         this.firstComposeThisTurn = true;
         this.rollEnemyIntents();
         this.log(`▶ 新的暗影将你包围了！（第 ${this.waveIndex + 1}/${this.waves.length} 波）`, "info");
