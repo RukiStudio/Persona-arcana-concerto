@@ -31,16 +31,27 @@ export const ELEMENT_INFO = {
 };
 
 // 力度阶数
+<<<<<<< HEAD
 export const POWER = { SM: 1, MD: 2, LG: 3, HV: 4, XH: 5 };
+=======
+export const POWER = { SM: 1, MD: 2, LG: 3, HV: 4, XH: 5, UL: 6 };
+>>>>>>> feat-develop-game-plan-KtGMvY
 export const POWER_INFO = {
   1: { name: "SMALL", label: "SM" },
   2: { name: "MEDIUM", label: "MD" },
   3: { name: "LARGE", label: "LG" },
   4: { name: "HEAVY", label: "HV" },
   5: { name: "COLOSSAL", label: "XH" },
+<<<<<<< HEAD
 };
 // 难度压缩：玩家技能力度系数整体下调
 export const POWER_MULTIPLIER = { 1: 0.4, 2: 0.8, 3: 1.4, 4: 2.2, 5: 3.2 };
+=======
+  6: { name: "ULTRA", label: "UL" },
+};
+// 难度压缩：玩家技能力度系数整体下调
+export const POWER_MULTIPLIER = { 1: 0.4, 2: 0.8, 3: 1.4, 4: 2.2, 5: 3.2, 6: 4.5 };
+>>>>>>> feat-develop-game-plan-KtGMvY
 
 export const RANGE = { SINGLE: "SINGLE", ALL: "ALL" };
 
@@ -82,7 +93,11 @@ export const ARCANA = {
     id: "FOOL", name: "愚者", icon: "🃏",
     bonusLevels: ["首次构筑+1阶", "首次2次构筑+1阶", "所有构筑+1阶"],
     bonusKey: "FOOL_FIRST",
+<<<<<<< HEAD
     persona_pool: ["orpheus", "slime", "ghost_brigade", "arsene"],
+=======
+    persona_pool: ["orpheus", "slime", "ghost_brigade", "arsene", "izanagi"],
+>>>>>>> feat-develop-game-plan-KtGMvY
   },
   MAGICIAN: {
     id: "MAGICIAN", name: "魔术师", icon: "🪄",
@@ -100,73 +115,121 @@ export const ARCANA = {
     id: "PRIESTESS", name: "女教皇", icon: "🌙",
     bonusLevels: ["首张手牌力度+1", "首张手牌力度+2", "首张手牌力度+2且首张免费"],
     bonusKey: "FIRST_CARD_UP",
+<<<<<<< HEAD
     persona_pool: ["juno", "apsaras", "unicorn"],
+=======
+    persona_pool: ["juno", "apsaras", "unicorn", "sarasvati", "skadi"],
+>>>>>>> feat-develop-game-plan-KtGMvY
   },
   EMPRESS: {
     id: "EMPRESS", name: "女皇", icon: "👑",
     bonusLevels: ["圣杯+50%", "圣杯效果翻倍", "圣杯+150%"],
     bonusKey: "CUP_DOUBLE",
+<<<<<<< HEAD
     persona_pool: ["artemisia", "penthesilea", "leanan_sidhe"],
+=======
+    persona_pool: ["artemisia", "penthesilea", "leanan_sidhe", "yaksini", "hariti"],
+>>>>>>> feat-develop-game-plan-KtGMvY
   },
   EMPEROR: {
     id: "EMPEROR", name: "皇帝", icon: "⚡",
     bonusLevels: ["电击+10%", "电击+20%且+1阶", "电击+30%且+1阶且范围转ALL"],
     bonusKey: "ELEC_DMG",
+<<<<<<< HEAD
     persona_pool: ["polydeuces", "oberon", "take_mikazuchi"],
+=======
+    persona_pool: ["polydeuces", "oberon", "take_mikazuchi", "ose", "thor"],
+>>>>>>> feat-develop-game-plan-KtGMvY
   },
   HIEROPHANT: {
     id: "HIEROPHANT", name: "教皇", icon: "⛪",
     bonusLevels: ["+¥30/回合", "+¥60/回合", "+¥80/回合且起手+¥100"],
     bonusKey: "EXTRA_INCOME",
+<<<<<<< HEAD
     persona_pool: ["berith", "shiisaa"],
+=======
+    persona_pool: ["berith", "shiisaa", "mokoi", "anubis", "mot"],
+>>>>>>> feat-develop-game-plan-KtGMvY
   },
   CHARIOT: {
     id: "CHARIOT", name: "战车", icon: "🛡",
     bonusLevels: ["物理+5%", "物理+10%", "物理+15%"],
     bonusKey: "PHYS_DMG",
+<<<<<<< HEAD
     persona_pool: ["athena", "captain_kidd"],
+=======
+    persona_pool: ["athena", "captain_kidd", "triglav", "siegfried", "futsunushi"],
+>>>>>>> feat-develop-game-plan-KtGMvY
   },
   JUSTICE: {
     id: "JUSTICE", name: "正义", icon: "⚖",
     bonusLevels: ["暴击+5%", "暴击+10%且暴击回5%HP", "暴击+15%且暴击回10%且无视抗性"],
     bonusKey: "CRIT_UP",
+<<<<<<< HEAD
     persona_pool: ["kala_nemi", "archangel", "principality"],
+=======
+    persona_pool: ["kala_nemi", "archangel", "principality", "power", "dominion"],
+>>>>>>> feat-develop-game-plan-KtGMvY
   },
   HERMIT: {
     id: "HERMIT", name: "隐者", icon: "🔦",
     bonusLevels: ["多抽1张", "多抽2张", "多抽2张且可看牌顶"],
     bonusKey: "EXTRA_DRAW",
+<<<<<<< HEAD
     persona_pool: ["naga"],
+=======
+    persona_pool: ["naga", "mothman", "vasuki", "white_rider", "ananta"],
+>>>>>>> feat-develop-game-plan-KtGMvY
   },
   FORTUNE: {
     id: "FORTUNE", name: "命运", icon: "🎲",
     bonusLevels: ["逆位上限+1", "逆位上限+2", "逆位上限+3且逆位牌力度+1"],
     bonusKey: "EXTRA_REVERSE",
+<<<<<<< HEAD
     persona_pool: ["fortuna", "sandman"],
+=======
+    persona_pool: ["fortuna", "sandman", "clotho", "atropos", "lachesis"],
+>>>>>>> feat-develop-game-plan-KtGMvY
   },
   STRENGTH: {
     id: "STRENGTH", name: "力量", icon: "💪",
     bonusLevels: ["攻击+5%", "攻击+10%", "攻击+15%"],
     bonusKey: "FLAT_ATK",
+<<<<<<< HEAD
     persona_pool: ["valkyrie", "rakshasa", "matador"],
+=======
+    persona_pool: ["valkyrie", "rakshasa", "matador", "kin_ki", "gurr"],
+>>>>>>> feat-develop-game-plan-KtGMvY
   },
   HANGED: {
     id: "HANGED", name: "倒悬者", icon: "🙃",
     bonusLevels: ["翻转不耗操作(1次/回合)", "翻转不耗操作(2次/回合)", "翻转不耗操作(3次/回合)"],
     bonusKey: "FREE_FLIP",
+<<<<<<< HEAD
     persona_pool: ["inugami", "take_minakata"],
+=======
+    persona_pool: ["inugami", "take_minakata", "yomotsu_shikome", "neko_shogun", "orlov"],
+>>>>>>> feat-develop-game-plan-KtGMvY
   },
   DEATH: {
     id: "DEATH", name: "死神", icon: "💀",
     bonusLevels: ["击杀回15%HP", "击杀回25%HP", "击杀回25%且<30%血处决+50%"],
     bonusKey: "KILL_HEAL",
+<<<<<<< HEAD
     persona_pool: ["pisaca", "pale_rider"],
+=======
+    persona_pool: ["pisaca", "pale_rider", "samael", "alice", "thanatos"],
+>>>>>>> feat-develop-game-plan-KtGMvY
   },
   TEMPERANCE: {
     id: "TEMPERANCE", name: "节制", icon: "🌀",
     bonusLevels: ["减伤10%", "减伤15%且回合回5%HP", "减伤20%且回合回10%HP"],
     bonusKey: "DAMAGE_REDUCE",
+<<<<<<< HEAD
     persona_pool: ["nigi_mitama", "mitra"],
+=======
+    persona_pool: ["nigi_mitama", "mitra", "genbu", "byakko", "suzaku"],
+>>>>>>> feat-develop-game-plan-KtGMvY
   },
 };
 
@@ -179,9 +242,19 @@ export const SKILLS = {
   // 物理
   cleave: { name: " Cleave", element: ELEMENT.PHYSICAL, power: POWER.MD, range: RANGE.SINGLE },
   mighty_swing: { name: "Mighty Swing", element: ELEMENT.PHYSICAL, power: POWER.LG, range: RANGE.SINGLE },
+<<<<<<< HEAD
   fatal_end: { name: "Fatal End", element: ELEMENT.PHYSICAL, power: POWER.HV, range: RANGE.SINGLE },
   blade_of_fury: { name: "Blade of Fury", element: ELEMENT.PHYSICAL, power: POWER.LG, range: RANGE.ALL },
   god_hand: { name: "God Hand", element: ELEMENT.PHYSICAL, power: POWER.XH, range: RANGE.SINGLE },
+=======
+  igo: { name: "Igo", element: ELEMENT.PHYSICAL, power: POWER.LG, range: RANGE.SINGLE },
+  fatal_end: { name: "Fatal End", element: ELEMENT.PHYSICAL, power: POWER.HV, range: RANGE.SINGLE },
+  blade_of_fury: { name: "Blade of Fury", element: ELEMENT.PHYSICAL, power: POWER.LG, range: RANGE.ALL },
+  gigantomachia: { name: "Gigantomachia", element: ELEMENT.PHYSICAL, power: POWER.HV, range: RANGE.ALL },
+  god_hand: { name: "God Hand", element: ELEMENT.PHYSICAL, power: POWER.XH, range: RANGE.SINGLE },
+  armageddon: { name: "Armageddon", element: ELEMENT.ALMIGHTY, power: POWER.UL, range: RANGE.ALL },
+  brave_blade: { name: "Brave Blade", element: ELEMENT.PHYSICAL, power: POWER.LG, range: RANGE.SINGLE },
+>>>>>>> feat-develop-game-plan-KtGMvY
   // 火焰
   agi: { name: "Agi", element: ELEMENT.FIRE, power: POWER.SM, range: RANGE.SINGLE },
   agilao: { name: "Agilao", element: ELEMENT.FIRE, power: POWER.MD, range: RANGE.SINGLE },
@@ -212,11 +285,21 @@ export const SKILLS = {
   hamaon: { name: "Hamaon", element: ELEMENT.BLESS, power: POWER.MD, range: RANGE.SINGLE },
   mahama: { name: "Mahama", element: ELEMENT.BLESS, power: POWER.MD, range: RANGE.ALL },
   kouga: { name: "Kouga", element: ELEMENT.BLESS, power: POWER.LG, range: RANGE.SINGLE },
+<<<<<<< HEAD
+=======
+  kougaon: { name: "Kougaon", element: ELEMENT.BLESS, power: POWER.LG, range: RANGE.SINGLE },
+  mahamaon: { name: "Mahamaon", element: ELEMENT.BLESS, power: POWER.LG, range: RANGE.ALL },
+>>>>>>> feat-develop-game-plan-KtGMvY
   // 咒怨
   mudo: { name: "Mudo", element: ELEMENT.CURSE, power: POWER.SM, range: RANGE.SINGLE },
   mudoon: { name: "Mudoon", element: ELEMENT.CURSE, power: POWER.MD, range: RANGE.SINGLE },
   mamudo: { name: "Mamudo", element: ELEMENT.CURSE, power: POWER.MD, range: RANGE.ALL },
   eiga: { name: "Eiga", element: ELEMENT.CURSE, power: POWER.LG, range: RANGE.SINGLE },
+<<<<<<< HEAD
+=======
+  eigaon: { name: "Eigaon", element: ELEMENT.CURSE, power: POWER.LG, range: RANGE.SINGLE },
+  mamudoon: { name: "Mamudoon", element: ELEMENT.CURSE, power: POWER.LG, range: RANGE.ALL },
+>>>>>>> feat-develop-game-plan-KtGMvY
   // 万能
   megido: { name: "Megido", element: ELEMENT.ALMIGHTY, power: POWER.MD, range: RANGE.ALL },
   megidola: { name: "Megidola", element: ELEMENT.ALMIGHTY, power: POWER.HV, range: RANGE.ALL },
@@ -262,6 +345,14 @@ export const PERSONAS = {
     affinities: { BLESS: W, CURSE: R },
     upright: SKILLS.cleave, reversed: SKILLS.eiga,
   },
+<<<<<<< HEAD
+=======
+  izanagi: {
+    name: "伊邪那岐", arcana: "FOOL", rank: RANK.B, icon: "⚔", level: 1,
+    affinities: { PHYSICAL: R, ELEC: R, WIND: W },
+    upright: SKILLS.zio, reversed: SKILLS.cleave,
+  },
+>>>>>>> feat-develop-game-plan-KtGMvY
   // 高阶
   orpheus_tel: {
     name: "俄耳甫斯·改", arcana: "FOOL", rank: RANK.A, icon: "🎶", level: 30,
@@ -365,6 +456,19 @@ export const PERSONAS = {
     affinities: { ICE: N, WIND: W, BLESS: N, CURSE: W },
     upright: SKILLS.hama, reversed: SKILLS.diarama,
   },
+<<<<<<< HEAD
+=======
+  sarasvati: {
+    name: "娑罗室伐底", arcana: "PRIESTESS", rank: RANK.C, icon: "🎵", level: 5,
+    affinities: { ICE: W, ELEC: R },
+    upright: SKILLS.dia, reversed: SKILLS.bufu,
+  },
+  skadi: {
+    name: "斯卡蒂", arcana: "PRIESTESS", rank: RANK.A, icon: "❄", level: 22,
+    affinities: { ICE: R, FIRE: W, ELEC: R },
+    upright: SKILLS.bufudyne, reversed: SKILLS.mabufudyne,
+  },
+>>>>>>> feat-develop-game-plan-KtGMvY
 
   // ===== 女皇 EMPRESS =====
   artemisia: {
@@ -382,6 +486,19 @@ export const PERSONAS = {
     affinities: { FIRE: W, WIND: R },
     upright: SKILLS.magaru, reversed: SKILLS.diarama,
   },
+<<<<<<< HEAD
+=======
+  yaksini: {
+    name: "夜支尼", arcana: "EMPRESS", rank: RANK.B, icon: "🗡", level: 14,
+    affinities: { PHYSICAL: R, WIND: W },
+    upright: SKILLS.cleave, reversed: SKILLS.garula,
+  },
+  hariti: {
+    name: "诃利帝母", arcana: "EMPRESS", rank: RANK.A, icon: "👩‍👧", level: 24,
+    affinities: { BLESS: R, CURSE: W, ICE: W },
+    upright: SKILLS.diarama, reversed: SKILLS.hamaon,
+  },
+>>>>>>> feat-develop-game-plan-KtGMvY
 
   // ===== 皇帝 EMPEROR =====
   polydeuces: {
@@ -399,6 +516,19 @@ export const PERSONAS = {
     affinities: { PHYSICAL: R, ELEC: N, WIND: W },
     upright: SKILLS.zionga, reversed: SKILLS.mighty_swing,
   },
+<<<<<<< HEAD
+=======
+  ose: {
+    name: "欧塞", arcana: "EMPEROR", rank: RANK.B, icon: "👹", level: 12,
+    affinities: { PHYSICAL: R, ELEC: W, ICE: W },
+    upright: SKILLS.cleave, reversed: SKILLS.tarukaja,
+  },
+  thor: {
+    name: "托尔", arcana: "EMPEROR", rank: RANK.A, icon: "🔨", level: 25,
+    affinities: { PHYSICAL: R, ELEC: N, WIND: W },
+    upright: SKILLS.ziodyne, reversed: SKILLS.maziodyne,
+  },
+>>>>>>> feat-develop-game-plan-KtGMvY
 
   // ===== 教皇 HIEROPHANT =====
   berith: {
@@ -411,6 +541,24 @@ export const PERSONAS = {
     affinities: { PHYSICAL: R, FIRE: W, ICE: N, BLESS: R },
     upright: SKILLS.agilao, reversed: SKILLS.hama,
   },
+<<<<<<< HEAD
+=======
+  mokoi: {
+    name: "莫科伊", arcana: "HIEROPHANT", rank: RANK.C, icon: "🪃", level: 8,
+    affinities: { PHYSICAL: R, FIRE: W },
+    upright: SKILLS.cleave, reversed: SKILLS.agi,
+  },
+  anubis: {
+    name: "阿努比斯", arcana: "HIEROPHANT", rank: RANK.B, icon: "🐺", level: 18,
+    affinities: { BLESS: W, CURSE: R, PHYSICAL: R },
+    upright: SKILLS.mudoon, reversed: SKILLS.cleave,
+  },
+  mot: {
+    name: "莫特", arcana: "HIEROPHANT", rank: RANK.A, icon: "💀", level: 26,
+    affinities: { BLESS: N, CURSE: N, PHYSICAL: R, FIRE: W },
+    upright: SKILLS.eigaon, reversed: SKILLS.kougaon,
+  },
+>>>>>>> feat-develop-game-plan-KtGMvY
 
   // ===== 战车 CHARIOT =====
   athena: {
@@ -423,6 +571,24 @@ export const PERSONAS = {
     affinities: { ELEC: R, WIND: W },
     upright: SKILLS.zionga, reversed: SKILLS.cleave,
   },
+<<<<<<< HEAD
+=======
+  triglav: {
+    name: "特里格拉夫", arcana: "CHARIOT", rank: RANK.B, icon: "🛡", level: 13,
+    affinities: { PHYSICAL: R, FIRE: W, ICE: W },
+    upright: SKILLS.mighty_swing, reversed: SKILLS.tarukaja,
+  },
+  siegfried: {
+    name: "齐格弗里德", arcana: "CHARIOT", rank: RANK.A, icon: "⚔", level: 25,
+    affinities: { PHYSICAL: N, FIRE: W, ELEC: R },
+    upright: SKILLS.igo, reversed: SKILLS.brave_blade,
+  },
+  futsunushi: {
+    name: "经津主神", arcana: "CHARIOT", rank: RANK.A, icon: "🗡", level: 28,
+    affinities: { PHYSICAL: R, WIND: N, FIRE: W },
+    upright: SKILLS.god_hand, reversed: SKILLS.garudyne,
+  },
+>>>>>>> feat-develop-game-plan-KtGMvY
 
   // ===== 正义 JUSTICE =====
   kala_nemi: {
@@ -440,6 +606,19 @@ export const PERSONAS = {
     affinities: { FIRE: R, BLESS: N, CURSE: W },
     upright: SKILLS.hamaon, reversed: SKILLS.mahama,
   },
+<<<<<<< HEAD
+=======
+  power: {
+    name: "力天使", arcana: "JUSTICE", rank: RANK.B, icon: "💪", level: 12,
+    affinities: { PHYSICAL: R, BLESS: R, CURSE: W },
+    upright: SKILLS.hama, reversed: SKILLS.cleave,
+  },
+  dominion: {
+    name: "座天使", arcana: "JUSTICE", rank: RANK.A, icon: "👼", level: 20,
+    affinities: { BLESS: N, CURSE: W, ELEC: R },
+    upright: SKILLS.kouga, reversed: SKILLS.mahamaon,
+  },
+>>>>>>> feat-develop-game-plan-KtGMvY
 
   // ===== 隐者 HERMIT =====
   naga: {
@@ -447,6 +626,29 @@ export const PERSONAS = {
     affinities: { PHYSICAL: W, ELEC: R, CURSE: R },
     upright: SKILLS.zionga, reversed: SKILLS.rakukaja,
   },
+<<<<<<< HEAD
+=======
+  mothman: {
+    name: "天蛾人", arcana: "HERMIT", rank: RANK.C, icon: "🦋", level: 6,
+    affinities: { WIND: R, ELEC: W },
+    upright: SKILLS.garu, reversed: SKILLS.magaru,
+  },
+  vasuki: {
+    name: "婆苏吉", arcana: "HERMIT", rank: RANK.B, icon: "🐍", level: 12,
+    affinities: { ICE: R, ELEC: W, PHYSICAL: W },
+    upright: SKILLS.bufula, reversed: SKILLS.zio,
+  },
+  white_rider: {
+    name: "白骑士", arcana: "HERMIT", rank: RANK.A, icon: "🏇", level: 22,
+    affinities: { BLESS: R, CURSE: W, ICE: N },
+    upright: SKILLS.hamaon, reversed: SKILLS.mamudo,
+  },
+  ananta: {
+    name: "阿南塔", arcana: "HERMIT", rank: RANK.A, icon: "🐲", level: 28,
+    affinities: { PHYSICAL: R, ELEC: R, ICE: N, FIRE: W },
+    upright: SKILLS.megido, reversed: SKILLS.debilitate,
+  },
+>>>>>>> feat-develop-game-plan-KtGMvY
 
   // ===== 命运 FORTUNE =====
   fortuna: {
@@ -459,6 +661,24 @@ export const PERSONAS = {
     affinities: { FIRE: N, ICE: W, ELEC: W, WIND: N },
     upright: SKILLS.megido, reversed: SKILLS.debilitate,
   },
+<<<<<<< HEAD
+=======
+  clotho: {
+    name: "克洛托", arcana: "FORTUNE", rank: RANK.C, icon: "🧵", level: 8,
+    affinities: { ELEC: W, WIND: R },
+    upright: SKILLS.tarukaja, reversed: SKILLS.garu,
+  },
+  atropos: {
+    name: "阿特洛波斯", arcana: "FORTUNE", rank: RANK.B, icon: "✂", level: 14,
+    affinities: { FIRE: W, ELEC: R },
+    upright: SKILLS.zionga, reversed: SKILLS.megido,
+  },
+  lachesis: {
+    name: "拉刻西斯", arcana: "FORTUNE", rank: RANK.A, icon: "📏", level: 20,
+    affinities: { FIRE: N, WIND: N, ELEC: W },
+    upright: SKILLS.megidola, reversed: SKILLS.debilitate,
+  },
+>>>>>>> feat-develop-game-plan-KtGMvY
 
   // ===== 力量 STRENGTH =====
   valkyrie: {
@@ -476,6 +696,19 @@ export const PERSONAS = {
     affinities: { FIRE: W, WIND: N, CURSE: RP },
     upright: SKILLS.garudyne, reversed: SKILLS.debilitate,
   },
+<<<<<<< HEAD
+=======
+  kin_ki: {
+    name: "金鬼", arcana: "STRENGTH", rank: RANK.B, icon: "👺", level: 14,
+    affinities: { PHYSICAL: R, FIRE: W, ELEC: R },
+    upright: SKILLS.mighty_swing, reversed: SKILLS.zionga,
+  },
+  gurr: {
+    name: "迦楼罗", arcana: "STRENGTH", rank: RANK.A, icon: "🦅", level: 24,
+    affinities: { PHYSICAL: R, WIND: N, FIRE: R },
+    upright: SKILLS.igo, reversed: SKILLS.garudyne,
+  },
+>>>>>>> feat-develop-game-plan-KtGMvY
 
   // ===== 倒悬者 HANGED =====
   inugami: {
@@ -488,6 +721,24 @@ export const PERSONAS = {
     affinities: { PHYSICAL: R, FIRE: R, ELEC: R, BLESS: W, CURSE: W },
     upright: SKILLS.agidyne, reversed: SKILLS.mabufudyne,
   },
+<<<<<<< HEAD
+=======
+  yomotsu_shikome: {
+    name: "黄泉丑女", arcana: "HANGED", rank: RANK.C, icon: "👹", level: 6,
+    affinities: { CURSE: R, BLESS: W },
+    upright: SKILLS.mudo, reversed: SKILLS.cleave,
+  },
+  neko_shogun: {
+    name: "猫将军", arcana: "HANGED", rank: RANK.B, icon: "🐈", level: 16,
+    affinities: { PHYSICAL: R, CURSE: N, BLESS: W },
+    upright: SKILLS.cleave, reversed: SKILLS.mudoon,
+  },
+  orlov: {
+    name: "奥尔洛夫", arcana: "HANGED", rank: RANK.A, icon: "💎", level: 24,
+    affinities: { BLESS: R, CURSE: R, PHYSICAL: W },
+    upright: SKILLS.kougaon, reversed: SKILLS.eigaon,
+  },
+>>>>>>> feat-develop-game-plan-KtGMvY
 
   // ===== 死神 DEATH =====
   pisaca: {
@@ -500,6 +751,24 @@ export const PERSONAS = {
     affinities: { WIND: R, BLESS: W, CURSE: RP },
     upright: SKILLS.eiga, reversed: SKILLS.mamudo,
   },
+<<<<<<< HEAD
+=======
+  samael: {
+    name: "萨麦尔", arcana: "DEATH", rank: RANK.B, icon: "☠", level: 16,
+    affinities: { CURSE: R, BLESS: W, FIRE: W },
+    upright: SKILLS.mudoon, reversed: SKILLS.eiga,
+  },
+  alice: {
+    name: "爱丽丝", arcana: "DEATH", rank: RANK.A, icon: "👧", level: 25,
+    affinities: { CURSE: N, BLESS: N, FIRE: R, ICE: W },
+    upright: SKILLS.eigaon, reversed: SKILLS.diarama,
+  },
+  thanatos: {
+    name: "塔纳托斯", arcana: "DEATH", rank: RANK.A, icon: "💀", level: 30,
+    affinities: { CURSE: R, BLESS: W, PHYSICAL: R, ELEC: R },
+    upright: SKILLS.eigaon, reversed: SKILLS.megidola,
+  },
+>>>>>>> feat-develop-game-plan-KtGMvY
 
   // ===== 节制 TEMPERANCE =====
   nigi_mitama: {
@@ -512,6 +781,24 @@ export const PERSONAS = {
     affinities: { ICE: N, ELEC: W, BLESS: N },
     upright: SKILLS.mediarama, reversed: SKILLS.samarecarm,
   },
+<<<<<<< HEAD
+=======
+  genbu: {
+    name: "玄武", arcana: "TEMPERANCE", rank: RANK.B, icon: "🐢", level: 14,
+    affinities: { ICE: R, PHYSICAL: R, FIRE: W },
+    upright: SKILLS.bufula, reversed: SKILLS.rakukaja,
+  },
+  byakko: {
+    name: "白虎", arcana: "TEMPERANCE", rank: RANK.A, icon: "🐅", level: 24,
+    affinities: { PHYSICAL: R, WIND: N, FIRE: W },
+    upright: SKILLS.mighty_swing, reversed: SKILLS.garula,
+  },
+  suzaku: {
+    name: "朱雀", arcana: "TEMPERANCE", rank: RANK.A, icon: "🐦", level: 22,
+    affinities: { FIRE: R, BLESS: R, ICE: W },
+    upright: SKILLS.agilao, reversed: SKILLS.media,
+  },
+>>>>>>> feat-develop-game-plan-KtGMvY
 
   // ===== 神通法卡池 =====
   theurgy_maragi: { name: "神通·玛拉基", icon: "🌋", skill: { name: "Theurgy Maragi", element: ELEMENT.FIRE, power: POWER.HV, range: RANGE.ALL } },
@@ -537,7 +824,17 @@ export const MINOR_CARDS = {
 // 敌人定义
 // ============================================================
 // 难度强化：HP ×1.3、attack ×1.25；shadow_priest/stone_golem/reaper 加恢复技能
+<<<<<<< HEAD
 export const ENEMIES = {
+=======
+export let ENEMIES = {
+  tutorial_shadow: {
+    name: "虚弱暗影", icon: "👤", level: 1, hp: 280,
+    affinities: { PHYSICAL: AFFINITY.NORMAL, FIRE: AFFINITY.WEAK, ICE: AFFINITY.NORMAL, WIND: AFFINITY.NORMAL, ELEC: AFFINITY.NORMAL, ALMIGHTY: AFFINITY.NORMAL },
+    skills: [{ name: "虚弱攻击", element: ELEMENT.PHYSICAL, power: POWER.SM, range: RANGE.SINGLE }],
+    attack: 8,
+  },
+>>>>>>> feat-develop-game-plan-KtGMvY
   cowardly_maya: {
     name: "怯懦的玛雅", icon: "🗿", level: 3, hp: 234,
     affinities: { PHYSICAL: AFFINITY.NORMAL, FIRE: AFFINITY.NORMAL, ICE: AFFINITY.NORMAL, WIND: AFFINITY.NORMAL, ELEC: AFFINITY.WEAK, ALMIGHTY: AFFINITY.NORMAL },
@@ -620,7 +917,19 @@ export const ENEMIES = {
 // 关卡配置（扩展：5 章 + Boss）
 // ============================================================
 // 多波次关卡 + 局内减益环境（environment 数组可叠加）
+<<<<<<< HEAD
 export const STAGES = [
+=======
+export let STAGES = [
+  {
+    id: 0, name: "新手教程：初次觉醒",
+    enemies: ["tutorial_shadow"],
+    waves: [["tutorial_shadow"]],
+    environment: [],
+    reward: { exp: 30, money: 150 }, recommendedLevel: 1,
+    isTutorial: true,
+  },
+>>>>>>> feat-develop-game-plan-KtGMvY
   {
     id: 1, name: "第一章：暗影领域",
     enemies: ["cowardly_maya", "crying_table"],
@@ -659,7 +968,11 @@ export const STAGES = [
 ];
 
 // 环境描述表（供 UI 渲染徽章）
+<<<<<<< HEAD
 export const ENVIRONMENT_INFO = {
+=======
+export let ENVIRONMENT_INFO = {
+>>>>>>> feat-develop-game-plan-KtGMvY
   POWER_MINUS_1: { name: "力度-1阶", icon: "⚠", desc: "所有玩家技能力度-1阶（下限SM）" },
   COMPOSE_COST_UP: { name: "构筑需多1张", icon: "⚠", desc: "构筑需至少2张牌" },
   HEAL_HALVED: { name: "恢复-50%", icon: "⚠", desc: "玩家恢复效果减半" },
@@ -772,3 +1085,80 @@ export const STARTING_PERSONAS = [
   "jack_frost", "jack_o_lantern",
   "pixie",
 ];
+<<<<<<< HEAD
+=======
+
+// ============================================================
+// 关卡数据加载器：从 stages.json 或 localStorage（编辑器修改）加载
+// ============================================================
+const CUSTOM_STAGES_KEY = "persona_custom_stages_v1";
+
+/**
+ * 将 JSON 中的字符串值映射回枚举常量
+ */
+function _resolveStagesData(data) {
+  // affinities: "WEAK" → AFFINITY.WEAK
+  // skills: element "FIRE" → ELEMENT.FIRE, power 1→POWER.SM, range "SINGLE"→RANGE.SINGLE
+  const enemies = {};
+  for (const [k, e] of Object.entries(data.enemies || {})) {
+    const affs = {};
+    for (const [el, v] of Object.entries(e.affinities || {})) {
+      affs[el] = typeof v === "string" ? AFFINITY[v] : v;
+    }
+    const skills = (e.skills || []).map(s => ({
+      ...s,
+      element: typeof s.element === "string" ? ELEMENT[s.element] : s.element,
+      power: typeof s.power === "string" ? POWER[s.power] : s.power,
+      range: typeof s.range === "string" ? RANGE[s.range] : s.range,
+    }));
+    enemies[k] = { ...e, affinities: affs, skills };
+  }
+  const stages = (data.stages || []).map(s => ({ ...s }));
+  const environment = data.environment || ENVIRONMENT_INFO;
+  return { enemies, stages, environment };
+}
+
+/**
+ * 加载关卡数据：优先 localStorage（编辑器），其次 stages.json，最后默认
+ */
+export async function loadStagesData() {
+  // 1. 检查 localStorage 自定义修改
+  try {
+    const raw = localStorage.getItem(CUSTOM_STAGES_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      const resolved = _resolveStagesData(data);
+      ENEMIES = resolved.enemies;
+      STAGES = resolved.stages;
+      ENVIRONMENT_INFO = resolved.environment;
+      return "localStorage";
+    }
+  } catch (e) { console.warn("自定义关卡数据加载失败，回退到 stages.json", e); }
+
+  // 2. 从 stages.json 加载
+  try {
+    const res = await fetch("stages.json", { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      const resolved = _resolveStagesData(data);
+      ENEMIES = resolved.enemies;
+      STAGES = resolved.stages;
+      ENVIRONMENT_INFO = resolved.environment;
+      return "stages.json";
+    }
+  } catch (e) { console.warn("stages.json 加载失败，使用内置默认值", e); }
+
+  return "default";
+}
+
+/** 保存自定义关卡数据到 localStorage */
+export function saveCustomStages({ enemies, stages, environment }) {
+  const data = { enemies, stages, environment };
+  localStorage.setItem(CUSTOM_STAGES_KEY, JSON.stringify(data));
+}
+
+/** 清除自定义关卡数据（恢复 stages.json / 默认） */
+export function clearCustomStages() {
+  localStorage.removeItem(CUSTOM_STAGES_KEY);
+}
+>>>>>>> feat-develop-game-plan-KtGMvY

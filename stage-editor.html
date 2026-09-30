@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>关卡编辑器 - 阿尔卡那协奏</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: #0f0f17;
+    color: #e0e0e0;
+    padding: 20px;
+    min-height: 100vh;
+  }
+  h1 { color: #d4af37; margin-bottom: 16px; }
+  h2 { color: #8ecae6; margin: 20px 0 10px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+  h3 { color: #fb8500; margin: 12px 0 8px; }
+  .toolbar { margin-bottom: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+  button {
+    background: #1e1e2e;
+    color: #e0e0e0;
+    border: 1px solid #444;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  button:hover { background: #2a2a40; border-color: #d4af37; }
+  button.primary { background: #d4af37; color: #111; border-color: #d4af37; font-weight: bold; }
+  button.danger { background: #c0392b; border-color: #c0392b; }
+  button.small { padding: 2px 8px; font-size: 12px; }
+  select, input[type=text], input[type=number], textarea {
+    background: #1a1a26;
+    color: #e0e0e0;
+    border: 1px solid #444;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  textarea { width: 100%; min-height: 60px; font-family: monospace; }
+  label { display: inline-block; margin-right: 8px; font-size: 13px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tab { padding: 8px 16px; background: #1e1e2e; border: 1px solid #444; border-radius: 6px 6px 0 0; cursor: pointer; }
+  .tab.active { background: #d4af37; color: #111; border-color: #d4af37; }
+  .grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+  .panel { background: #16161f; border: 1px solid #333; border-radius: 6px; padding: 16px; }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; margin-bottom: 3px; color: #aaa; font-size: 12px; }
+  .field input, .field select { width: 100%; }
+  .wave-block { background: #1e1e2e; border: 1px solid #3a3a4a; border-radius: 6px; padding: 10px; margin-bottom: 10px; }
+  .enemy-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+  .enemy-chip {
+    background: #2a2a40; padding: 4px 10px; border-radius: 12px;
+    font-size: 13px; display: inline-flex; align-items: center; gap: 4px;
+  }
+  .enemy-chip .remove { cursor: pointer; color: #e55; margin-left: 4px; }
+  .affinity-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .aff-row { display: flex; align-items: center; gap: 4px; font-size: 12px; }
+  .skill-row { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; }
+  .env-list { display: flex; gap: 8px; flex-wrap: wrap; }
+  .env-item { background: #2a2a40; padding: 4px 10px; border-radius: 4px; cursor: pointer; border: 1px solid #444; }
+  .env-item.selected { background: #d4af37; color: #111; border-color: #d4af37; }
+  .emoji-picker { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; max-height: 200px; overflow-y: auto; background: #1a1a26; border: 1px solid #444; padding: 8px; border-radius: 4px; position: absolute; z-index: 100; }
+  .emoji-picker span { cursor: pointer; font-size: 20px; padding: 2px; text-align: center; }
+  .emoji-picker span:hover { background: #333; }
+  .toast { position: fixed; bottom: 20px; right: 20px; background: #d4af37; color: #111; padding: 10px 20px; border-radius: 4px; font-weight: bold; display: none; z-index: 9999; }
+  .json-preview { background: #111; border: 1px solid #333; padding: 10px; border-radius: 4px; max-height: 300px; overflow: auto; font-size: 11px; }
+</style>
+</head>
+<body>
+<h1>🎴 关卡编辑器</h1>
+<div class="toolbar">
+  <button class="primary" onclick="saveAll()">💾 保存到 localStorage</button>
+  <button onclick="exportJSON()">⬇ 导出 JSON</button>
+  <label>导入：<input type="file" id="importFile" accept=".json" onchange="importJSON(event)" /></label>
+  <button class="danger" onclick="clearCustom()">🗑 清除自定义（恢复 stages.json）</button>
+  <button onclick="location.href='index.html'">🎮 返回游戏</button>
+</div>
+
+<div id="editor-root"></div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import {
+  SKILLS, ELEMENT, POWER, RANGE, AFFINITY, ENVIRONMENT_INFO,
+  saveCustomStages, clearCustomStages,
+} from "./js/data.js?v=16";
+
+const STORAGE_KEY = "persona_custom_stages_v1";
+const ELEMENT_KEYS = Object.keys(ELEMENT);
+const POWER_KEYS = Object.keys(POWER);
+const RANGE_KEYS = Object.keys(RANGE);
+const AFFINITY_KEYS = Object.keys(AFFINITY);
+const ENV_KEYS = Object.keys(ENVIRONMENT_INFO);
+
+// 常用 emoji 选择
+const EMOJIS = ["👤","🟣","🪑","🔮","🦷","🖐","⛪","🟢","🗿","💀","👹","👺","🦇","🐺","🐍","🕷","🦂","🐉","☠","👻","🎃","🧟","🧛","🧙","🦹","👽","🤖","🦾","🧞","🧜","🦄","🐲","🦖","🦕","🐙","🦑","🐊","🐢","🦉","🦅","🐈","🐕","🦊","🐻","🦁","🐯","🐺","🦌","🐃","🐂","🦬","🐘","🦏","🦒","🐪","🐫","🦘","🐀","🐁","🦔","🐢","🐸","🐊","🐉","🐲"];
+
+let data = { enemies: {}, stages: [], environment: { ...ENVIRONMENT_INFO } };
+let currentStageIdx = 0;
+let currentEnemyKey = null;
+
+// ---------- 加载数据 ----------
+async function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      data = JSON.parse(raw);
+      data.environment = data.environment || { ...ENVIRONMENT_INFO };
+      console.log("已加载 localStorage 自定义关卡");
+      return;
+    }
+    const res = await fetch("stages.json", { cache: "no-store" });
+    if (res.ok) {
+      data = await res.json();
+      data.environment = data.environment || { ...ENVIRONMENT_INFO };
+      console.log("已加载 stages.json");
+      return;
+    }
+  } catch (e) { console.warn("加载失败，使用空模板", e); }
+  // 空模板
+  data = {
+    enemies: { tutorial_shadow: { name: "虚弱暗影", icon: "👤", level: 1, hp: 100, affinities: { PHYSICAL: "NORMAL", FIRE: "WEAK" }, skills: [{ name: "攻击", element: "PHYSICAL", power: 1, range: "SINGLE" }], attack: 10 } },
+    stages: [{ id: 0, name: "新关卡", enemies: ["tutorial_shadow"], waves: [["tutorial_shadow"]], environment: [], reward: { exp: 50, money: 200 }, recommendedLevel: 1 }],
+    environment: { ...ENVIRONMENT_INFO },
+  };
+}
+
+// ---------- 字符串化（用于保存） ----------
+function serialize(data) {
+  return JSON.stringify(data, null, 2);
+}
+
+// ---------- 保存 ----------
+window.saveAll = function() {
+  saveCustomStages(data);
+  showToast("✅ 已保存到 localStorage");
+};
+
+window.clearCustom = function() {
+  if (!confirm("确认清除所有自定义关卡？将恢复为 stages.json 默认配置。")) return;
+  clearCustomStages();
+  location.reload();
+};
+
+window.exportJSON = function() {
+  const blob = new Blob([serialize(data)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "stages.json";
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+window.importJSON = function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      data = JSON.parse(ev.target.result);
+      data.environment = data.environment || { ...ENVIRONMENT_INFO };
+      currentStageIdx = 0;
+      currentEnemyKey = Object.keys(data.enemies)[0] || null;
+      render();
+      showToast("✅ 导入成功");
+    } catch (err) { alert("JSON 解析失败: " + err.message); }
+  };
+  reader.readAsText(file);
+};
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  setTimeout(() => t.style.display = "none", 2000);
+}
+
+// ---------- 渲染 ----------
+function render() {
+  const root = document.getElementById("editor-root");
+  root.innerHTML = `
+    <div class="tabs">
+      ${data.stages.map((s, i) => `<div class="tab ${i === currentStageIdx ? "active" : ""}" onclick="selectStage(${i})">${s.id}. ${s.name}</div>`).join("")}
+      <div class="tab" onclick="addStage()">+ 新关卡</div>
+    </div>
+    <div class="grid">
+      <div class="panel">
+        ${renderStageForm()}
+      </div>
+      <div class="panel">
+        <h2>敌人库</h2>
+        ${renderEnemyLibrary()}
+        ${currentEnemyKey ? renderEnemyEditor() : "<p style='color:#888'>从上方选择一个敌人进行编辑</p>"}
+      </div>
+    </div>
+  `;
+}
+
+window.selectStage = function(i) { currentStageIdx = i; render(); };
+
+window.addStage = function() {
+  const id = data.stages.length > 0 ? Math.max(...data.stages.map(s => s.id)) + 1 : 0;
+  data.stages.push({ id, name: "新关卡", enemies: [], waves: [[]], environment: [], reward: { exp: 50, money: 200 }, recommendedLevel: 1 });
+  currentStageIdx = data.stages.length - 1;
+  render();
+};
+
+// ---------- 关卡表单 ----------
+function renderStageForm() {
+  const s = data.stages[currentStageIdx];
+  if (!s) return "";
+  return `
+    <h2>关卡配置</h2>
+    <div class="field"><label>关卡 ID</label><input type="number" value="${s.id}" onchange="updateStage('id', parseInt(this.value))" /></div>
+    <div class="field"><label>关卡名称</label><input type="text" value="${s.name}" onchange="updateStage('name', this.value)" /></div>
+    <div class="field"><label>推荐等级</label><input type="number" value="${s.recommendedLevel || 1}" onchange="updateStage('recommendedLevel', parseInt(this.value))" /></div>
+    <div class="field"><label>奖励经验</label><input type="number" value="${s.reward.exp}" onchange="updateReward('exp', parseInt(this.value))" /></div>
+    <div class="field"><label>奖励精魄</label><input type="number" value="${s.reward.money}" onchange="updateReward('money', parseInt(this.value))" /></div>
+    <div class="field"><label>环境减益（点击切换）</label>
+      <div class="env-list">
+        ${ENV_KEYS.map(k => `<div class="env-item ${(s.environment || []).includes(k) ? "selected" : ""}" onclick="toggleEnv('${k}')">${ENVIRONMENT_INFO[k]?.icon || ""} ${ENVIRONMENT_INFO[k]?.name || k}</div>`).join("")}
+      </div>
+    </div>
+    <h3>波次配置</h3>
+    ${renderWaves()}
+    <h3>原始 JSON</h3>
+    <textarea readonly>${JSON.stringify(s, null, 2)}</textarea>
+    <button class="danger" onclick="deleteStage()" style="margin-top:10px">删除此关卡</button>
+  `;
+}
+
+window.updateStage = function(field, val) {
+  data.stages[currentStageIdx][field] = val;
+};
+window.updateReward = function(field, val) {
+  data.stages[currentStageIdx].reward[field] = val;
+};
+window.toggleEnv = function(k) {
+  const s = data.stages[currentStageIdx];
+  s.environment = s.environment || [];
+  const i = s.environment.indexOf(k);
+  if (i >= 0) s.environment.splice(i, 1);
+  else s.environment.push(k);
+  render();
+};
+window.deleteStage = function() {
+  if (!confirm("确认删除此关卡？")) return;
+  data.stages.splice(currentStageIdx, 1);
+  currentStageIdx = Math.max(0, currentStageIdx - 1);
+  render();
+};
+
+// ---------- 波次 ----------
+function renderWaves() {
+  const s = data.stages[currentStageIdx];
+  return (s.waves || []).map((wave, wi) => `
+    <div class="wave-block">
+      <strong>第 ${wi + 1} 波</strong>
+      <button class="small danger" onclick="removeWave(${wi})" style="float:right">删除波次</button>
+      <div class="enemy-chips">
+        ${wave.map((ek, ei) => `
+          <span class="enemy-chip">${data.enemies[ek]?.icon || "?"} ${data.enemies[ek]?.name || ek} <span class="remove" onclick="removeEnemyFromWave(${wi}, ${ei})">×</span></span>
+        `).join("")}
+      </div>
+      <select onchange="addEnemyToWave(${wi}, this.value)">
+        <option value="">+ 添加敌人…</option>
+        ${Object.keys(data.enemies).map(ek => `<option value="${ek}">${data.enemies[ek].icon} ${data.enemies[ek].name}</option>`).join("")}
+      </select>
+    </div>
+  `).join("") + `<button class="small" onclick="addWave()">+ 新增波次</button>`;
+}
+
+window.addWave = function() {
+  data.stages[currentStageIdx].waves.push([]);
+  render();
+};
+window.removeWave = function(wi) {
+  data.stages[currentStageIdx].waves.splice(wi, 1);
+  render();
+};
+window.addEnemyToWave = function(wi, ek) {
+  if (!ek) return;
+  data.stages[currentStageIdx].waves[wi].push(ek);
+  const s = data.stages[currentStageIdx];
+  if (!s.enemies.includes(ek)) s.enemies.push(ek);
+  render();
+};
+window.removeEnemyFromWave = function(wi, ei) {
+  data.stages[currentStageIdx].waves[wi].splice(ei, 1);
+  render();
+};
+
+// ---------- 敌人库 ----------
+function renderEnemyLibrary() {
+  const keys = Object.keys(data.enemies);
+  return `
+    <div style="margin-bottom:10px">
+      ${keys.map(k => `<button class="small ${k === currentEnemyKey ? "primary" : ""}" onclick="selectEnemy('${k}')" style="margin:2px">${data.enemies[k].icon} ${data.enemies[k].name}</button>`).join("")}
+      <button class="small" onclick="addEnemy()">+ 新敌人</button>
+    </div>
+  `;
+}
+
+window.selectEnemy = function(k) { currentEnemyKey = k; render(); };
+
+window.addEnemy = function() {
+  let key = "enemy_" + Date.now().toString(36);
+  data.enemies[key] = {
+    name: "新敌人", icon: "👹", level: 1, hp: 100, attack: 10,
+    affinities: { PHYSICAL: "NORMAL", FIRE: "NORMAL" },
+    skills: [{ name: "攻击", element: "PHYSICAL", power: 1, range: "SINGLE" }],
+  };
+  currentEnemyKey = key;
+  render();
+};
+
+// ---------- 敌人编辑器 ----------
+function renderEnemyEditor() {
+  const e = data.enemies[currentEnemyKey];
+  if (!e) return "";
+  return `
+    <h3>编辑：${e.icon} ${e.name}</h3>
+    <div class="field"><label>敌人 Key（唯一标识）</label>
+      <input type="text" value="${currentEnemyKey}" onchange="renameEnemy(this.value)" />
+    </div>
+    <div class="field"><label>名称</label><input type="text" value="${e.name}" onchange="updateEnemy('name', this.value)" /></div>
+    <div class="field"><label>图标</label>
+      <input type="text" value="${e.icon}" id="icon-input" onchange="updateEnemy('icon', this.value)" />
+      <button class="small" onclick="toggleEmojiPicker()">选择 Emoji</button>
+      <div id="emoji-picker" class="emoji-picker" style="display:none">
+        ${EMOJIS.map(em => `<span onclick="pickEmoji('${em}')">${em}</span>`).join("")}
+      </div>
+    </div>
+    <div class="field"><label>等级</label><input type="number" value="${e.level}" onchange="updateEnemy('level', parseInt(this.value))" /></div>
+    <div class="field"><label>生命</label><input type="number" value="${e.hp}" onchange="updateEnemy('hp', parseInt(this.value))" /></div>
+    <div class="field"><label>攻击力</label><input type="number" value="${e.attack}" onchange="updateEnemy('attack', parseInt(this.value))" /></div>
+
+    <h3>属性相性</h3>
+    <div class="affinity-grid">
+      ${ELEMENT_KEYS.map(el => `
+        <div class="aff-row">
+          <span>${el}</span>
+          <select onchange="updateAffinity('${el}', this.value)">
+            ${AFFINITY_KEYS.map(ak => `<option value="${ak}" ${(e.affinities[el] || "NORMAL") === ak ? "selected" : ""}>${ak}</option>`).join("")}
+          </select>
+        </div>
+      `).join("")}
+    </div>
+
+    <h3>技能</h3>
+    ${renderSkills()}
+    <button class="small" onclick="addSkill()">+ 添加技能</button>
+
+    <h3>原始 JSON</h3>
+    <textarea readonly>${JSON.stringify(e, null, 2)}</textarea>
+    <button class="danger" onclick="deleteEnemy()" style="margin-top:10px">删除此敌人</button>
+  `;
+}
+
+window.updateEnemy = function(field, val) {
+  data.enemies[currentEnemyKey][field] = val;
+  render();
+};
+window.renameEnemy = function(newKey) {
+  if (!newKey || newKey === currentEnemyKey) return;
+  if (data.enemies[newKey]) { alert("Key 已存在"); return; }
+  const old = data.enemies[currentEnemyKey];
+  data.enemies[newKey] = old;
+  delete data.enemies[currentEnemyKey];
+  // 更新 stages 中的引用
+  data.stages.forEach(s => {
+    s.enemies = s.enemies.map(k => k === currentEnemyKey ? newKey : k);
+    s.waves = s.waves.map(w => w.map(k => k === currentEnemyKey ? newKey : k));
+  });
+  currentEnemyKey = newKey;
+  render();
+};
+window.deleteEnemy = function() {
+  if (!confirm("确认删除此敌人？关卡中的引用也会被移除。")) return;
+  data.stages.forEach(s => {
+    s.enemies = s.enemies.filter(k => k !== currentEnemyKey);
+    s.waves = s.waves.map(w => w.filter(k => k !== currentEnemyKey));
+  });
+  delete data.enemies[currentEnemyKey];
+  currentEnemyKey = Object.keys(data.enemies)[0] || null;
+  render();
+};
+window.toggleEmojiPicker = function() {
+  const p = document.getElementById("emoji-picker");
+  p.style.display = p.style.display === "none" ? "grid" : "none";
+};
+window.pickEmoji = function(em) {
+  data.enemies[currentEnemyKey].icon = em;
+  document.getElementById("emoji-picker").style.display = "none";
+  render();
+};
+window.updateAffinity = function(el, val) {
+  data.enemies[currentEnemyKey].affinities[el] = val;
+  render();
+};
+
+// ---------- 技能编辑 ----------
+function renderSkills() {
+  const e = data.enemies[currentEnemyKey];
+  return (e.skills || []).map((sk, si) => `
+    <div class="skill-row">
+      <input type="text" placeholder="技能名" value="${sk.name}" style="width:120px" onchange="updateSkill(${si}, 'name', this.value)" />
+      <select onchange="updateSkill(${si}, 'element', this.value)">
+        ${ELEMENT_KEYS.map(el => `<option value="${el}" ${sk.element === el ? "selected" : ""}>${el}</option>`).join("")}
+      </select>
+      <select onchange="updateSkill(${si}, 'power', this.value)">
+        ${POWER_KEYS.map(p => `<option value="${p}" ${String(sk.power) === p ? "selected" : ""}>${p}</option>`).join("")}
+      </select>
+      <select onchange="updateSkill(${si}, 'range', this.value)">
+        ${RANGE_KEYS.map(r => `<option value="${r}" ${sk.range === r ? "selected" : ""}>${r}</option>`).join("")}
+      </select>
+      <button class="small danger" onclick="removeSkill(${si})">×</button>
+    </div>
+  `).join("");
+}
+window.updateSkill = function(si, field, val) {
+  const e = data.enemies[currentEnemyKey];
+  if (field === "power") val = val; // 保留字符串，序列化时存数字名
+  e.skills[si][field] = val;
+  render();
+};
+window.addSkill = function() {
+  data.enemies[currentEnemyKey].skills.push({ name: "新技能", element: "PHYSICAL", power: "SM", range: "SINGLE" });
+  render();
+};
+window.removeSkill = function(si) {
+  data.enemies[currentEnemyKey].skills.splice(si, 1);
+  render();
+};
+
+// ---------- 启动 ----------
+loadData().then(() => {
+  currentStageIdx = 0;
+  currentEnemyKey = Object.keys(data.enemies)[0] || null;
+  render();
+});
+</script>
+</body>
+</html>

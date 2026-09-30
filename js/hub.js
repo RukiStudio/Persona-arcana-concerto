@@ -5,9 +5,15 @@ import {
   PERSONAS, ARCANA, ARCANA_LIST, STAGES, SHOP_ITEMS,
   ELEMENT_INFO, POWER_INFO, RANK_LABEL, RANK, AFFINITY, ELEMENT,
   STAT_UPGRADE_COSTS, STAT_INCREMENTS, EXP_CURVE, MAX_PLAYER_LEVEL,
+<<<<<<< HEAD
 } from "./data.js?v=10";
 import { MetaState } from "./meta.js?v=10";
 import { getFusionResult, executeFusion, getAvailableFusions } from "./fusion.js?v=10";
+=======
+} from "./data.js?v=16";
+import { MetaState } from "./meta.js?v=16";
+import { getFusionResult, executeFusion, getAvailableFusions } from "./fusion.js?v=16";
+>>>>>>> feat-develop-game-plan-KtGMvY
 
 export class Hub {
   constructor(meta, onEnterStage) {
@@ -65,6 +71,7 @@ export class Hub {
             const cleared = this.meta.isStageCleared(s.id);
             const next = i === this.meta.getNextStage();
             const locked = i > 0 && !this.meta.isStageCleared(STAGES[i-1].id);
+<<<<<<< HEAD
             return `
               <div class="stage-card ${cleared ? "cleared" : ""} ${locked ? "locked" : ""} ${next ? "next" : ""}"
                    data-idx="${i}">
@@ -72,6 +79,17 @@ export class Hub {
                   <span class="stage-id">CH.${s.id}</span>
                   ${cleared ? '<span class="stage-cleared-tag">✓ CLEAR</span>' : ""}
                   ${locked ? '<span class="stage-locked-tag">🔒 LOCKED</span>' : ""}
+=======
+            const isTut = s.isTutorial;
+            return `
+              <div class="stage-card ${cleared ? "cleared" : ""} ${locked ? "locked" : ""} ${next ? "next" : ""} ${isTut ? "tutorial" : ""}"
+                   data-idx="${i}">
+                <div class="stage-header">
+                  <span class="stage-id">${isTut ? "TUT" : "CH." + s.id}</span>
+                  ${cleared ? '<span class="stage-cleared-tag">✓ CLEAR</span>' : ""}
+                  ${locked ? '<span class="stage-locked-tag">🔒 LOCKED</span>' : ""}
+                  ${isTut && !cleared ? '<span class="stage-tut-tag">📚 推荐</span>' : ""}
+>>>>>>> feat-develop-game-plan-KtGMvY
                 </div>
                 <div class="stage-name">${s.name}</div>
                 <div class="stage-info">
@@ -82,7 +100,11 @@ export class Hub {
                   <span>EXP ${s.reward.exp}</span>
                   <span>◈${s.reward.money}</span>
                 </div>
+<<<<<<< HEAD
                 ${!locked ? `<button class="cut-btn confirm stage-enter-btn" data-idx="${i}">出 击</button>` : ""}
+=======
+                ${!locked ? `<button class="cut-btn confirm stage-enter-btn" data-idx="${i}">${isTut ? "开始教学" : "出 击"}</button>` : ""}
+>>>>>>> feat-develop-game-plan-KtGMvY
               </div>
             `;
           }).join("")}

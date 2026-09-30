@@ -1,0 +1,126 @@
+{
+  "enemies": {
+    "tutorial_shadow": {
+      "name": "虚弱暗影", "icon": "👤", "level": 1, "hp": 280,
+      "affinities": { "PHYSICAL": "NORMAL", "FIRE": "WEAK", "ICE": "NORMAL", "WIND": "NORMAL", "ELEC": "NORMAL", "ALMIGHTY": "NORMAL" },
+      "skills": [{ "name": "虚弱攻击", "element": "PHYSICAL", "power": 1, "range": "SINGLE" }],
+      "attack": 8
+    },
+    "cowardly_maya": {
+      "name": "怯弱玛亚", "icon": "🟣", "level": 3, "hp": 234,
+      "affinities": { "PHYSICAL": "NORMAL", "FIRE": "NORMAL", "ICE": "WEAK", "WIND": "NORMAL", "ELEC": "NORMAL", "ALMIGHTY": "NORMAL" },
+      "skills": [{ "name": "Psiodyne", "element": "PSI", "power": 2, "range": "SINGLE" }],
+      "attack": 23
+    },
+    "crying_table": {
+      "name": "恸哭之桌", "icon": "🪑", "level": 4, "hp": 312,
+      "affinities": { "PHYSICAL": "NORMAL", "FIRE": "NORMAL", "ICE": "NORMAL", "WIND": "WEAK", "ELEC": "RESIST", "ALMIGHTY": "NORMAL" },
+      "skills": [{ "name": "Mazio", "element": "ELEC", "power": 1, "range": "ALL" }],
+      "attack": 25
+    },
+    "maya": {
+      "name": "玛亚", "icon": "🔮", "level": 6, "hp": 390,
+      "affinities": { "PHYSICAL": "NORMAL", "FIRE": "NORMAL", "ICE": "WEAK", "WIND": "NORMAL", "ELEC": "NORMAL", "ALMIGHTY": "NORMAL" },
+      "skills": [{ "name": "Psiodyne", "element": "PSI", "power": 3, "range": "SINGLE" }],
+      "attack": 30
+    },
+    "fang_of_desire": {
+      "name": "欲望之牙", "icon": "🦷", "level": 7, "hp": 455,
+      "affinities": { "PHYSICAL": "NORMAL", "FIRE": "WEAK", "ICE": "NORMAL", "WIND": "NORMAL", "ELEC": "NORMAL", "ALMIGHTY": "NORMAL" },
+      "skills": [{ "name": "Twin Fang", "element": "PHYSICAL", "power": 3, "range": "SINGLE" }],
+      "attack": 35
+    },
+    "dancing_hand": {
+      "name": "舞蹈之手", "icon": "🖐", "level": 6, "hp": 416,
+      "affinities": { "PHYSICAL": "NORMAL", "FIRE": "NORMAL", "ICE": "WEAK", "WIND": "NORMAL", "ELEC": "RESIST", "ALMIGHTY": "NORMAL" },
+      "skills": [{ "name": "Mabufu", "element": "ICE", "power": 2, "range": "ALL" }],
+      "attack": 32
+    },
+    "shadow_priest": {
+      "name": "暗影祭司", "icon": "⛪", "level": 10, "hp": 546,
+      "affinities": { "PHYSICAL": "NORMAL", "FIRE": "RESIST", "ICE": "NORMAL", "WIND": "NORMAL", "ELEC": "NORMAL", "BLESS": "WEAK", "CURSE": "NORMAL", "ALMIGHTY": "NORMAL" },
+      "skills": [
+        { "name": "Mazio", "element": "ELEC", "power": 2, "range": "ALL" },
+        { "name": "Diarama", "element": "HEAL", "power": 3, "range": "SINGLE" }
+      ],
+      "attack": 38
+    },
+    "slime_shadow": {
+      "name": "史莱姆暗影", "icon": "🟢", "level": 9, "hp": 520,
+      "affinities": { "PHYSICAL": "RESIST", "FIRE": "WEAK", "ICE": "NORMAL", "WIND": "NORMAL", "ELEC": "NORMAL", "ALMIGHTY": "NORMAL" },
+      "skills": [{ "name": "Megido", "element": "ALMIGHTY", "power": 3, "range": "ALL" }],
+      "attack": 36
+    },
+    "stone_golem": {
+      "name": "石像魔像", "icon": "🗿", "level": 14, "hp": 780,
+      "affinities": { "PHYSICAL": "RESIST", "FIRE": "NORMAL", "ICE": "NORMAL", "WIND": "WEAK", "ELEC": "NORMAL", "ALMIGHTY": "NORMAL" },
+      "skills": [
+        { "name": "Maragi", "element": "FIRE", "power": 2, "range": "ALL" },
+        { "name": "Dia", "element": "HEAL", "power": 2, "range": "SINGLE" }
+      ],
+      "attack": 45
+    },
+    "reaper": {
+      "name": "死神", "icon": "💀", "level": 25, "hp": 1040,
+      "affinities": { "PHYSICAL": "NORMAL", "FIRE": "NORMAL", "ICE": "NORMAL", "WIND": "NORMAL", "ELEC": "NORMAL", "BLESS": "RESIST", "CURSE": "RESIST", "ALMIGHTY": "NORMAL" },
+      "skills": [
+        { "name": "Megidolaon", "element": "ALMIGHTY", "power": 5, "range": "ALL" },
+        { "name": "Samarecarm", "element": "HEAL", "power": 4, "range": "SELF" },
+        { "name": "Mudoon", "element": "CURSE", "power": 4, "range": "SINGLE" }
+      ],
+      "attack": 50
+    }
+  },
+  "stages": [
+    {
+      "id": 0, "name": "新手教程：初次觉醒",
+      "enemies": ["tutorial_shadow"],
+      "waves": [["tutorial_shadow"]],
+      "environment": [],
+      "reward": { "exp": 30, "money": 150 }, "recommendedLevel": 1,
+      "isTutorial": true
+    },
+    {
+      "id": 1, "name": "第一章：暗影领域",
+      "enemies": ["cowardly_maya", "crying_table"],
+      "waves": [["cowardly_maya"], ["crying_table"]],
+      "environment": ["POWER_MINUS_1"],
+      "reward": { "exp": 50, "money": 300 }, "recommendedLevel": 1
+    },
+    {
+      "id": 2, "name": "第二章：扭曲迷宫",
+      "enemies": ["maya", "fang_of_desire", "dancing_hand"],
+      "waves": [["maya"], ["fang_of_desire", "dancing_hand"]],
+      "environment": ["COMPOSE_COST_UP"],
+      "reward": { "exp": 80, "money": 500 }, "recommendedLevel": 8
+    },
+    {
+      "id": 3, "name": "第三章：诅咒回廊",
+      "enemies": ["shadow_priest", "slime_shadow", "dancing_hand"],
+      "waves": [["shadow_priest"], ["slime_shadow"], ["dancing_hand"]],
+      "environment": ["HEAL_HALVED"],
+      "reward": { "exp": 120, "money": 700 }, "recommendedLevel": 12
+    },
+    {
+      "id": 4, "name": "第四章：巨石遗迹",
+      "enemies": ["stone_golem", "fang_of_desire", "shadow_priest"],
+      "waves": [["stone_golem"], ["fang_of_desire"], ["shadow_priest"]],
+      "environment": ["ENEMY_ATK_UP", "HEAL_HALVED"],
+      "reward": { "exp": 160, "money": 900 }, "recommendedLevel": 16
+    },
+    {
+      "id": 5, "name": "BOSS：死神降临",
+      "enemies": ["reaper"],
+      "waves": [["dancing_hand", "shadow_priest"], ["stone_golem"], ["fang_of_desire", "shadow_priest"], ["reaper"]],
+      "environment": ["CRIT_DOWN", "ENEMY_ATK_UP", "HEAL_HALVED"],
+      "reward": { "exp": 300, "money": 2000 }, "recommendedLevel": 20
+    }
+  ],
+  "environment": {
+    "POWER_MINUS_1": { "name": "力度-1阶", "icon": "⚠", "desc": "所有玩家技能力度-1阶（下限SM）" },
+    "COMPOSE_COST_UP": { "name": "构筑需多1张", "icon": "⚠", "desc": "构筑需至少2张牌" },
+    "HEAL_HALVED": { "name": "恢复-50%", "icon": "⚠", "desc": "玩家恢复效果减半" },
+    "ENEMY_ATK_UP": { "name": "敌方攻击+25%", "icon": "⚠", "desc": "敌方伤害提升" },
+    "CRIT_DOWN": { "name": "暴击-50%", "icon": "⚠", "desc": "玩家暴击率减半" }
+  }
+}

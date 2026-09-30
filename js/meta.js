@@ -6,6 +6,7 @@ import {
   EXP_CURVE, MAX_PLAYER_LEVEL, STAT_POINTS_PER_LEVEL,
   STAT_UPGRADE_COSTS, STAT_INCREMENTS,
   STARTING_PERSONAS, RANK,
+<<<<<<< HEAD
 } from "./data.js?v=10";
 
 const SAVE_KEY = "persona_concerto_save_v1";
@@ -22,6 +23,71 @@ export class MetaState {
       const raw = localStorage.getItem(SAVE_KEY);
       if (raw) saved = JSON.parse(raw);
     } catch (e) { /* ignore */ }
+=======
+} from "./data.js?v=16";
+
+const SAVE_KEY = "persona_concerto_save_v1";        // 旧版单存档（迁移用）
+const PROFILES_KEY = "persona_concerto_profiles_v1"; // 多玩家档案（每个玩家独立存档）
+
+// 读取所有玩家档案
+function readProfiles() {
+  try {
+    const raw = localStorage.getItem(PROFILES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) { return {}; }
+}
+function writeProfiles(profiles) {
+  try { localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles)); } catch (e) { /* ignore */ }
+}
+
+// 旧版存档迁移：将单存档转为"默认玩家"档案
+function migrateLegacySave() {
+  const raw = localStorage.getItem(SAVE_KEY);
+  if (!raw) return;
+  const profiles = readProfiles();
+  if (!profiles["默认玩家"]) {
+    try {
+      profiles["默认玩家"] = JSON.parse(raw);
+      writeProfiles(profiles);
+    } catch (e) { /* ignore */ }
+  }
+  localStorage.removeItem(SAVE_KEY);
+}
+
+export class MetaState {
+  constructor(profileName = "默认玩家") {
+    // 首次加载时迁移旧存档
+    migrateLegacySave();
+    this.profileName = profileName;
+    this.load();
+  }
+
+  // ---------- 玩家档案管理（静态方法） ----------
+  static listProfiles() {
+    migrateLegacySave();
+    const profiles = readProfiles();
+    return Object.keys(profiles);
+  }
+
+  static createProfile(name) {
+    const profiles = readProfiles();
+    if (profiles[name]) return { ok: false, msg: "该玩家名已存在" };
+    profiles[name] = null; // null 表示新存档，load 时使用默认值
+    writeProfiles(profiles);
+    return { ok: true };
+  }
+
+  static deleteProfile(name) {
+    const profiles = readProfiles();
+    delete profiles[name];
+    writeProfiles(profiles);
+  }
+
+  // ---------- 存档 ----------
+  load() {
+    const profiles = readProfiles();
+    const saved = profiles[this.profileName] || null;
+>>>>>>> feat-develop-game-plan-KtGMvY
 
     this.playerLevel = saved?.playerLevel ?? 1;
     this.exp = saved?.exp ?? 0;
@@ -57,6 +123,7 @@ export class MetaState {
       bonusTheurgyMax: this.bonusTheurgyMax,
       arcanaLevels: this.arcanaLevels,
     };
+<<<<<<< HEAD
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
     } catch (e) { /* ignore */ }
@@ -64,6 +131,17 @@ export class MetaState {
 
   reset() {
     localStorage.removeItem(SAVE_KEY);
+=======
+    const profiles = readProfiles();
+    profiles[this.profileName] = data;
+    writeProfiles(profiles);
+  }
+
+  reset() {
+    const profiles = readProfiles();
+    profiles[this.profileName] = null;
+    writeProfiles(profiles);
+>>>>>>> feat-develop-game-plan-KtGMvY
     this.load();
   }
 
@@ -108,8 +186,13 @@ export class MetaState {
     const lvl = this.bonusStats[stat] ?? 0;
     // 难度压缩后的基础值
     if (stat === "critRate") return { base: "3%", bonus: `+${(lvl * inc * 100).toFixed(0)}%`, total: `${((0.03 + lvl * inc) * 100).toFixed(0)}%` };
+<<<<<<< HEAD
     if (stat === "maxHp") return { base: "600", bonus: `+${lvl * inc}`, total: String(600 + lvl * inc) };
     if (stat === "attack") return { base: "90", bonus: `+${lvl * inc}`, total: String(90 + lvl * inc) };
+=======
+    if (stat === "maxHp") return { base: "300", bonus: `+${lvl * inc}`, total: String(300 + lvl * inc) };
+    if (stat === "attack") return { base: "18", bonus: `+${lvl * inc}`, total: String(18 + lvl * inc) };
+>>>>>>> feat-develop-game-plan-KtGMvY
     if (stat === "maxReversed") return { base: "2", bonus: `+${lvl}`, total: String(2 + lvl) };
     if (stat === "theurgyMax") return { base: "2", bonus: `+${lvl}`, total: String(2 + lvl) };
     return { base: "0", bonus: "", total: "0" };
@@ -120,8 +203,13 @@ export class MetaState {
     const s = this.bonusStats;
     const arcana = ARCANA[this.arcanaId];
     const arcanaLv = this.getArcanaLevel(this.arcanaId);
+<<<<<<< HEAD
     let attack = 90 + (s.attack ?? 0) * STAT_INCREMENTS.attack;
     let maxHp = 600 + (s.maxHp ?? 0) * STAT_INCREMENTS.maxHp;
+=======
+    let attack = 18 + (s.attack ?? 0) * STAT_INCREMENTS.attack;
+  let maxHp = 300 + (s.maxHp ?? 0) * STAT_INCREMENTS.maxHp;
+>>>>>>> feat-develop-game-plan-KtGMvY
     let critRate = 0.03 + (s.critRate ?? 0) * STAT_INCREMENTS.critRate;
     let maxReversed = 2 + (s.maxReversed ?? 0);
     let theurgyMax = 2 + (s.theurgyMax ?? 0) + this.bonusTheurgyMax;
