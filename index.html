@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -884,5 +885,168 @@ async function resetGame() { const s = await api('/reset', {}); render(s); }
 // 初始化
 api('/state').then(render);
 </script>
+=======
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>女神异闻录：阿尔卡那协奏</title>
+  <link rel="stylesheet" href="css/style.css?v=10" />
+</head>
+<body>
+  <!-- ============ 局外养成 Hub 屏幕 ============ -->
+  <div id="hub-screen" class="hub-screen">
+    <header class="hub-header">
+      <div class="hub-title-area">
+        <h1 class="hub-title">女神异闻录 · 阿尔卡那协奏</h1>
+        <span class="hub-subtitle">VELVET ROOM — 局外养成</span>
+      </div>
+      <div class="hub-player-info">
+        <div class="hub-stat-block">
+          <span class="hub-stat-label">LEVEL</span>
+          <span id="hub-level" class="hub-stat-value">1</span>
+        </div>
+        <div class="hub-stat-block">
+          <span class="hub-stat-label">EXP</span>
+          <div class="hub-exp-bar"><div id="hub-exp-fill" class="hub-exp-fill"></div></div>
+          <span id="hub-exp-text" class="hub-exp-text">0/100</span>
+        </div>
+        <div class="hub-stat-block">
+          <span class="hub-stat-label">◈</span>
+          <span id="hub-money" class="hub-stat-value gold">0</span>
+        </div>
+        <div class="hub-stat-block">
+          <span class="hub-stat-label">SP</span>
+          <span id="hub-stat-points" class="hub-stat-value">0</span>
+        </div>
+        <div class="hub-stat-block arcana-block">
+          <span class="hub-stat-label">ARCANA</span>
+          <span id="hub-arcana" class="hub-stat-value">愚者</span>
+        </div>
+      </div>
+    </header>
+
+    <nav class="hub-tabs">
+      <button class="hub-tab active" data-tab="stages">关卡选择</button>
+      <button class="hub-tab" data-tab="compendium">人格面具图鉴</button>
+      <button class="hub-tab" data-tab="fusion">合体召唤</button>
+      <button class="hub-tab" data-tab="stats">属性强化</button>
+      <button class="hub-tab" data-tab="arcana">阵营选择</button>
+      <button class="hub-tab" data-tab="shop">天鹅绒商店</button>
+    </nav>
+
+    <div id="hub-content" class="hub-content"></div>
+  </div>
+
+  <!-- ============ 战斗画面 ============ -->
+  <div id="game-root" class="hidden">
+
+    <!-- ① 水面状态栏 -->
+    <header id="status-bar" class="zone water-surface">
+      <div class="stat-panel">
+        <span class="stat-label">TURN</span>
+        <span id="turn-num" class="stat-value">01</span>
+      </div>
+      <div class="stat-panel">
+        <span class="stat-label">¥</span>
+        <span id="money-num" class="stat-value gold">0</span>
+      </div>
+      <div class="stat-panel">
+        <span class="stat-label">DECK Lv.</span>
+        <span id="deck-level" class="stat-value">1</span>
+      </div>
+      <div class="stat-panel">
+        <span class="stat-label">HAND</span>
+        <span id="hand-count" class="stat-value">0/6</span>
+      </div>
+      <div class="theurgy-panel">
+        <span class="stat-label">THEURGY</span>
+        <div class="theurgy-bar">
+          <div id="theurgy-fill" class="theurgy-fill"></div>
+          <span id="theurgy-text" class="theurgy-text">0%</span>
+        </div>
+      </div>
+      <div class="stat-panel arcana-panel">
+        <span class="stat-label">ARCANA</span>
+        <span id="arcana-name" class="stat-value">愚者</span>
+      </div>
+      <div id="env-badges" class="env-badges"></div>
+      <button id="btn-hub-return" class="cut-btn" title="返回天鹅绒房间">← HUB</button>
+    </header>
+
+    <!-- ② 敌人区域 -->
+    <section id="enemy-area" class="zone shadow-domain">
+      <div id="enemy-list" class="enemy-list"></div>
+    </section>
+
+    <!-- ③ 构筑区域 -->
+    <section id="compose-area" class="zone deep-water">
+      <div id="compose-slots" class="compose-slots">
+        <!-- 5 个构筑槽由 JS 生成 -->
+      </div>
+      <div id="result-panel" class="result-panel">
+        <div class="result-title">◆ RESULT ◆</div>
+        <div id="result-element" class="result-element">— —</div>
+        <div id="result-power" class="result-power">POWER: —</div>
+        <div class="result-divider"></div>
+        <div class="result-row"><span>BASE DMG</span><span id="result-base" class="num">0</span></div>
+        <div class="result-row"><span>CUP BONUS</span><span id="result-cup" class="num gold">×1.0</span></div>
+        <div class="result-row final"><span>FINAL DMG</span><span id="result-final" class="num big gold">0</span></div>
+        <div class="result-row"><span>CHAIN</span><span id="result-chain" class="num">0 CARDS</span></div>
+        <div class="result-buttons">
+          <button id="btn-confirm" class="cut-btn confirm">CONFIRM</button>
+          <button id="btn-clear" class="cut-btn">CLEAR</button>
+        </div>
+      </div>
+      <div id="chain-bar" class="chain-bar"></div>
+    </section>
+
+    <!-- ④ 手牌区域 -->
+    <section id="hand-area" class="zone hand-zone">
+      <div id="hand-list" class="hand-list"></div>
+    </section>
+
+    <!-- ⑤ 海底操作栏 -->
+    <footer id="action-bar" class="zone sea-floor">
+      <div class="player-stats">
+        <div class="hp-block">
+          <span class="stat-label">HP</span>
+          <div class="hp-bar"><div id="player-hp-fill" class="hp-fill"></div></div>
+          <span id="player-hp-text" class="hp-text">100/100</span>
+        </div>
+        <div class="stat-inline">
+          <span class="stat-label">CUP</span>
+          <span id="cup-stack" class="stat-value gold">0</span>
+        </div>
+        <div class="stat-inline">
+          <span class="stat-label">FLIP</span>
+          <span id="flip-remain" class="stat-value">2</span>
+        </div>
+      </div>
+      <div class="action-buttons">
+        <button id="btn-flip" class="cut-btn">FLIP</button>
+        <button id="btn-draw" class="cut-btn">DRAW ¥50</button>
+        <button id="btn-upgrade" class="cut-btn">UPGRADE ¥500</button>
+        <button id="btn-end" class="cut-btn danger">END TURN</button>
+      </div>
+    </footer>
+
+    <!-- 战斗日志 -->
+    <div id="battle-log" class="battle-log"></div>
+
+    <!-- 结算遮罩 -->
+    <div id="overlay" class="overlay hidden">
+      <div class="overlay-content">
+        <h1 id="overlay-title">VICTORY</h1>
+        <p id="overlay-desc"></p>
+        <button id="overlay-btn" class="cut-btn confirm">CONTINUE</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="js/main.js?v=10"></script>
+>>>>>>> feat-develop-game-plan-KtGMvY
 </body>
 </html>
