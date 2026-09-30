@@ -711,7 +711,7 @@ export const MINOR_CARDS = {
 // 敌人定义
 // ============================================================
 // 难度强化：HP ×1.3、attack ×1.25；shadow_priest/stone_golem/reaper 加恢复技能
-export const ENEMIES = {
+export let ENEMIES = {
   tutorial_shadow: {
     name: "虚弱暗影", icon: "👤", level: 1, hp: 280,
     affinities: { PHYSICAL: AFFINITY.NORMAL, FIRE: AFFINITY.WEAK, ICE: AFFINITY.NORMAL, WIND: AFFINITY.NORMAL, ELEC: AFFINITY.NORMAL, ALMIGHTY: AFFINITY.NORMAL },
@@ -800,7 +800,7 @@ export const ENEMIES = {
 // 关卡配置（扩展：5 章 + Boss）
 // ============================================================
 // 多波次关卡 + 局内减益环境（environment 数组可叠加）
-export const STAGES = [
+export let STAGES = [
   {
     id: 0, name: "新手教程：初次觉醒",
     enemies: ["tutorial_shadow"],
@@ -847,7 +847,7 @@ export const STAGES = [
 ];
 
 // 环境描述表（供 UI 渲染徽章）
-export const ENVIRONMENT_INFO = {
+export let ENVIRONMENT_INFO = {
   POWER_MINUS_1: { name: "力度-1阶", icon: "⚠", desc: "所有玩家技能力度-1阶（下限SM）" },
   COMPOSE_COST_UP: { name: "构筑需多1张", icon: "⚠", desc: "构筑需至少2张牌" },
   HEAL_HALVED: { name: "恢复-50%", icon: "⚠", desc: "玩家恢复效果减半" },
@@ -960,3 +960,77 @@ export const STARTING_PERSONAS = [
   "jack_frost", "jack_o_lantern",
   "pixie",
 ];
+
+// ============================================================
+// 关卡数据加载器：从 stages.json 或 localStorage（编辑器修改）加载
+// ============================================================
+const CUSTOM_STAGES_KEY = "persona_custom_stages_v1";
+
+/**
+ * 将 JSON 中的字符串值映射回枚举常量
+ */
+function _resolveStagesData(data) {
+  // affinities: "WEAK" → AFFINITY.WEAK
+  // skills: element "FIRE" → ELEMENT.FIRE, power 1→POWER.SM, range "SINGLE"→RANGE.SINGLE
+  const enemies = {};
+  for (const [k, e] of Object.entries(data.enemies || {})) {
+    const affs = {};
+    for (const [el, v] of Object.entries(e.affinities || {})) {
+      affs[el] = typeof v === "string" ? AFFINITY[v] : v;
+    }
+    const skills = (e.skills || []).map(s => ({
+      ...s,
+      element: typeof s.element === "string" ? ELEMENT[s.element] : s.element,
+      power: typeof s.power === "string" ? POWER[s.power] : s.power,
+      range: typeof s.range === "string" ? RANGE[s.range] : s.range,
+    }));
+    enemies[k] = { ...e, affinities: affs, skills };
+  }
+  const stages = (data.stages || []).map(s => ({ ...s }));
+  const environment = data.environment || ENVIRONMENT_INFO;
+  return { enemies, stages, environment };
+}
+
+/**
+ * 加载关卡数据：优先 localStorage（编辑器），其次 stages.json，最后默认
+ */
+export async function loadStagesData() {
+  // 1. 检查 localStorage 自定义修改
+  try {
+    const raw = localStorage.getItem(CUSTOM_STAGES_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      const resolved = _resolveStagesData(data);
+      ENEMIES = resolved.enemies;
+      STAGES = resolved.stages;
+      ENVIRONMENT_INFO = resolved.environment;
+      return "localStorage";
+    }
+  } catch (e) { console.warn("自定义关卡数据加载失败，回退到 stages.json", e); }
+
+  // 2. 从 stages.json 加载
+  try {
+    const res = await fetch("stages.json", { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      const resolved = _resolveStagesData(data);
+      ENEMIES = resolved.enemies;
+      STAGES = resolved.stages;
+      ENVIRONMENT_INFO = resolved.environment;
+      return "stages.json";
+    }
+  } catch (e) { console.warn("stages.json 加载失败，使用内置默认值", e); }
+
+  return "default";
+}
+
+/** 保存自定义关卡数据到 localStorage */
+export function saveCustomStages({ enemies, stages, environment }) {
+  const data = { enemies, stages, environment };
+  localStorage.setItem(CUSTOM_STAGES_KEY, JSON.stringify(data));
+}
+
+/** 清除自定义关卡数据（恢复 stages.json / 默认） */
+export function clearCustomStages() {
+  localStorage.removeItem(CUSTOM_STAGES_KEY);
+}

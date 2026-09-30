@@ -1,10 +1,11 @@
-﻿// ============================================================
+// ============================================================
 // 游戏入口：玩家档案选择、初始化、Hub ↔ 战斗切换
 // ============================================================
-import { Game } from "./game.js?v=15";
-import { UI } from "./ui.js?v=15";
-import { MetaState } from "./meta.js?v=15";
-import { Hub } from "./hub.js?v=15";
+import { Game } from "./game.js?v=16";
+import { UI } from "./ui.js?v=16";
+import { MetaState } from "./meta.js?v=16";
+import { Hub } from "./hub.js?v=16";
+import { loadStagesData } from "./data.js?v=16";
 
 // 等比缩放适配
 function fitScreen() {
@@ -138,5 +139,11 @@ function showBattle(stageIndex) {
   game.startStage(stageIndex);
 }
 
-// 启动：显示档案选择界面
-renderProfileList();
+// 启动：先加载关卡数据，再显示档案选择界面
+loadStagesData().then(source => {
+  console.log("关卡数据加载来源:", source);
+  renderProfileList();
+}).catch(e => {
+  console.error("关卡数据加载失败，使用默认值", e);
+  renderProfileList();
+});

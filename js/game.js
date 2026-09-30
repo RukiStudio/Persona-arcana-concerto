@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // 游戏状态机：回合流程、牌库、战斗结算
 // ============================================================
 import {
@@ -6,8 +6,8 @@ import {
   CARD_TYPE, RANK, RANK_LABEL, POWER, RANGE, ELEMENT, AFFINITY,
   STARTING_PERSONAS,
   nextId,
-} from "./data.js?v=15";
-import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=15";
+} from "./data.js?v=16";
+import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=16";
 
 // 卡牌工厂
 function makePersonaCard(key) {
@@ -83,6 +83,7 @@ export class Game {
     this.supportBuffs = {}; // 辅助技能的临时 buff（tarukaja, rakukaja 等）
     this.allowPersonaRefresh = true; // 牌库重建时是否补充人格面具卡（首次或升级后）
     this.allOutUsedThisTurn = false; // 一回合内总攻击冷却
+    this.lastUpgradeTurn = 0; // 上次升级的回合数（用于计算折扣）
   }
 
   on(fn) { this.listeners.push(fn); }
@@ -163,28 +164,43 @@ export class Game {
 
   // 升级牌库（费用 ×1.2）
   upgradeDeck() {
-    const costs = [600, 1200, 2400, 4800];
-    const cost = costs[this.deckLevel - 1] || 9999;
+    const baseCosts = [600, 1200, 2400, 4800];
+    const baseCost = baseCosts[this.deckLevel - 1] || 9999;
+    // 每回合升级费用递减：第1回合-15%，第2回合-30%，第3回合及以后-50%；升级后重置
+    const discountTurns = Math.min(this.turn - this.lastUpgradeTurn - 1, 3);
+    const discount = discountTurns <= 0 ? 0 : [0, 0.15, 0.30, 0.50][discountTurns];
+    const cost = Math.round(baseCost * (1 - discount));
     if (this.deckLevel >= 5) { this.log("牌库已满级", "info"); return false; }
-    if (this.player.money < cost) { this.log("资金不足！", "info"); return false; }
+    if (this.player.money < cost) { this.log(`资金不足！需要 ¥${cost}`, "info"); return false; }
     this.player.money -= cost;
     this.deckLevel++;
     this.handLimit = Math.min(8, this.handLimit + 1);
-    // 升级时解锁一张高阶卡（记入 bonusCards，牌库重建时保留）
-    const highCards = ["orpheus_tel", "high_pixie"];
-    const key = highCards[Math.floor(Math.random() * highCards.length)];
-    this.bonusCards.push(key);
-    this.deck.push(makePersonaCard(key));
+    this.lastUpgradeTurn = this.turn; // 重置折扣计时
+
+    // 从本阵营卡池中选择高阶卡（rank A/S）；若未解锁高阶卡则补充低阶卡（rank C/B）
+    const allPool = (this.arcana.persona_pool || []).filter(k => this.meta ? this.meta.isUnlocked(k) : true);
+    const highPool = allPool.filter(k => PERSONAS[k] && PERSONAS[k].rank >= 3);
+    const lowPool = allPool.filter(k => PERSONAS[k] && PERSONAS[k].rank <= 2);
+    let key = null;
+    if (highPool.length > 0) {
+      key = highPool[Math.floor(Math.random() * highPool.length)];
+    } else if (lowPool.length > 0) {
+      key = lowPool[Math.floor(Math.random() * lowPool.length)];
+    }
+    if (key) {
+      this.bonusCards.push(key);
+      this.deck.push(makePersonaCard(key));
+    }
     // 升级后允许下次重建时补充本阵营低阶人格面具卡
     this.allowPersonaRefresh = true;
     // 即时补充一张本阵营随机低阶人格面具
-    const pool = (this.arcana.persona_pool || []).filter(k => this.meta ? this.meta.isUnlocked(k) : true);
-    if (pool.length > 0) {
-      const lowKey = pool[Math.floor(Math.random() * pool.length)];
+    if (lowPool.length > 0) {
+      const lowKey = lowPool[Math.floor(Math.random() * lowPool.length)];
       this.deck.push(makePersonaCard(lowKey));
     }
     this.shuffle(this.deck);
-    this.log(`牌库升至 Lv.${this.deckLevel}！解锁 ${PERSONAS[key].name}，手牌上限+1，补充人格面具`, "gold");
+    const discountText = discount > 0 ? `（回合折扣 -${Math.round(discount * 100)}%）` : "";
+    this.log(`牌库升至 Lv.${this.deckLevel}！解锁 ${key ? PERSONAS[key].name : "无"}，手牌上限+1，补充人格面具${discountText}`, "gold");
     this.emit("state");
     return true;
   }
@@ -501,21 +517,21 @@ export class Game {
       this.player.cupStack += stacks;
       this.log(`圣杯层数 +${stacks}（当前 ${this.player.cupStack}）`, "gold");
     } else if (card.type === CARD_TYPE.PENTACLE) {
-      const gain = 200 + this.turn * 10;
+      // 星币：基础 200 + 回合×10 + 牌库等级×30（随牌库等级略微上升）
+      const gain = 200 + this.turn * 10 + (this.deckLevel - 1) * 30;
       this.player.money += gain;
       this.log(`星币：获得 ¥${gain}`, "gold");
     } else if (card.type === CARD_TYPE.WAND) {
-      // 从牌库检索 rank+1 的随机卡加入手牌
-      const higher = this.deck.filter(c => c.type === CARD_TYPE.PERSONA && c.rank >= 2);
-      if (higher.length) {
-        const pick = higher[Math.floor(Math.random() * higher.length)];
-        const di = this.deck.indexOf(pick);
-        this.deck.splice(di, 1);
-        if (this.hand.length < this.handLimit) {
-          this.hand.push(pick);
-          this.log(`权杖：获得 ${pick.name}`, "gold");
-        } else { this.log("手牌已满，权杖效果失效", "info"); }
-      } else { this.log("牌库中没有更高阶卡牌", "info"); }
+      // 权杖：从本阵营卡池检索一张已解锁的人格面具加入手牌（不消耗牌库、无视手牌上限）
+      const pool = (this.arcana.persona_pool || []).filter(k => this.meta ? this.meta.isUnlocked(k) : true);
+      if (pool.length) {
+        const key = pool[Math.floor(Math.random() * pool.length)];
+        const pick = makePersonaCard(key);
+        this.hand.push(pick);
+        this.log(`权杖：获得 ${pick.name}（不消耗牌库）`, "gold");
+      } else {
+        this.log("未解锁任何人格面具，权杖效果失效", "info");
+      }
     }
     this.emit("state");
   }
@@ -733,10 +749,19 @@ export class Game {
                      result.affinity === AFFINITY.RESIST ? "（耐性）" : "";
       this.log(`对 ${enemy.name} 造成 ${result.damage} 伤害${affTxt}${result.isCrit ? " 暴击！" : ""}`, result.affinity === AFFINITY.WEAK ? "dmg" : "info");
 
-      // 弱点 → 倒地 + 神通法槽+20%
+      // 弱点 → 倒地 + 神通法槽+20% + 立即抽一张手牌
       if (result.affinity === AFFINITY.WEAK) {
         enemy.is_knocked_down = true;
         this.addTheurgy(20);
+        // 倒地抽牌（同权杖机制）
+        if (this.hand.length < this.handLimit && this.deck.length > 0) {
+          const card = this.deck.pop();
+          this.hand.push(card);
+          this.emit("draw", card);
+          this.log(`弱点命中！额外抽到 ${card.name}`, "gold");
+        } else if (this.hand.length >= this.handLimit) {
+          this.log("弱点命中！但手牌已满", "info");
+        }
       }
       // 暴击 → 神通法+10%
       if (result.isCrit) this.addTheurgy(10);

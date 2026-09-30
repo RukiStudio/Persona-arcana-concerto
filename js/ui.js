@@ -1,11 +1,11 @@
-﻿// ============================================================
+// ============================================================
 // UI 渲染与交互
 // ============================================================
 import {
   ELEMENT, ELEMENT_INFO, POWER_INFO, RANK_LABEL, CARD_TYPE, AFFINITY,
   ENVIRONMENT_INFO,
-} from "./data.js?v=15";
-import { getActiveSkill, calcBaseDamage } from "./core.js?v=15";
+} from "./data.js?v=16";
+import { getActiveSkill, calcBaseDamage } from "./core.js?v=16";
 
 export class UI {
   constructor(game, onReturnHub) {
@@ -239,7 +239,13 @@ export class UI {
     document.getElementById("btn-upgrade").disabled = !canAct;
     document.getElementById("btn-draw").textContent = `DRAW ¥${g.player.drawCost}`;
     const upCosts = [600, 1200, 2400, 4800];
-    document.getElementById("btn-upgrade").textContent = g.deckLevel >= 5 ? "MAX" : `UPGRADE ¥${upCosts[g.deckLevel - 1]}`;
+    const baseCost = upCosts[g.deckLevel - 1] || 9999;
+    // 计算回合折扣（与 game.js 逻辑一致）
+    const discountTurns = Math.min(g.turn - g.lastUpgradeTurn - 1, 3);
+    const discount = discountTurns <= 0 ? 0 : [0, 0.15, 0.30, 0.50][discountTurns];
+    const cost = Math.round(baseCost * (1 - discount));
+    const discountTag = discount > 0 ? ` (-${Math.round(discount * 100)}%)` : "";
+    document.getElementById("btn-upgrade").textContent = g.deckLevel >= 5 ? "MAX" : `UPGRADE ¥${cost}${discountTag}`;
 
     this.renderEnemies();
     this.renderComposeSlots();
