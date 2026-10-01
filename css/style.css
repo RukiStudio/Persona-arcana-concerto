@@ -38,11 +38,12 @@ html, body {
 
 /* 游戏根容器：1920×1080 基准，等比缩放 */
 #game-root {
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 1920px;
   height: 1080px;
-  margin: 0 auto;
-  transform-origin: top center;
+  transform-origin: top left;
   background:
     linear-gradient(180deg, rgba(33,150,243,0.35) 0%, rgba(13,43,92,0.6) 100%),
     url("../assets/backgrounds/battle_bg.jpg") center/cover no-repeat;

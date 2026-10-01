@@ -13,9 +13,9 @@ function fitScreen() {
   const scaleX = window.innerWidth / 1920;
   const scaleY = window.innerHeight / 1080;
   const scale = Math.min(scaleX, scaleY);
-  root.style.transform = `scale(${scale})`;
-  const offset = (window.innerHeight - 1080 * scale) / 2;
-  root.style.marginTop = offset > 0 ? offset + "px" : "0";
+  const offsetX = (window.innerWidth - 1920 * scale) / 2;
+  const offsetY = (window.innerHeight - 1080 * scale) / 2;
+  root.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
 }
 window.addEventListener("resize", fitScreen);
 
