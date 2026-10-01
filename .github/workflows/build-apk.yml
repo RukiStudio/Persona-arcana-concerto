@@ -1,0 +1,83 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [master]
+    paths:
+      - 'index.html'
+      - 'stage-editor.html'
+      - 'stages.json'
+      - 'css/**'
+      - 'js/**'
+      - 'assets/**'
+      - 'icons/app-icon.png'
+      - 'capacitor.config.ts'
+      - 'package.json'
+      - 'scripts/**'
+      - '.github/workflows/build-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" > /dev/null
+
+      - name: Prepare www
+        run: |
+          mkdir -p www
+          cp -r index.html stage-editor.html css js assets stages.json manifest.webmanifest sw.js icons www/
+
+      - name: Install npm deps
+        run: npm install --no-audit --no-fund
+
+      - name: Add Android platform
+        run: npx cap add android
+
+      - name: Generate app icons
+        run: node scripts/gen-android-icons.mjs
+
+      - name: Sync web to android
+        run: npx cap sync android
+
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: P-AC-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload release (unsigned) APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: P-AC-release-unsigned
+          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: ignore

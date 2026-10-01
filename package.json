@@ -1,0 +1,18 @@
+{
+  "name": "persona-arcana-concerto",
+  "version": "1.0.0",
+  "description": "P: AC - Android APK build (Capacitor)",
+  "private": true,
+  "scripts": {
+    "icons": "node scripts/gen-android-icons.mjs",
+    "apk:add": "cap add android",
+    "apk:sync": "cap sync android",
+    "apk:build": "cd android && gradlew assembleDebug"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/cli": "^6.2.0",
+    "@capacitor/core": "^6.2.0",
+    "sharp": "^0.33.5"
+  }
+}

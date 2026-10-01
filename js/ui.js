@@ -12,7 +12,10 @@ export class UI {
     this.game = game;
     this.onReturnHub = onReturnHub || null;
     this.selectedCardId = null;
-    this.clickTimer = null; // 区分单击/双击
+    // 移动端拖动 / 长按状态
+    this._drag = null;               // 当前指针拖动状态
+    this._lpTimer = null;            // 长按定时器
+    this._suppressThisClick = false; // 拖动/长按后抑制下一次 click
     this.bindStatic();
     game.on((type, data) => this.handleEvent(type, data));
   }
@@ -83,13 +86,13 @@ export class UI {
   // 教程引导：根据 step 显示气泡提示
   onTutorial(data) {
     const tips = {
-      1: { title: "① 构 筑 卡 牌", body: "★ 构筑规则：将人格面具卡拖入下方 5 个构筑槽，\n合成更强的技能（按总力度×等级计算伤害）。\n\n现在请将「软泥怪」和「小宝剑」拖入构筑槽", target: "#compose-slots" },
-      2: { title: "② 生 成 攻 击 牌", body: "卡牌已入构筑槽！\n点击「CONFIRM」（或按 空格 键），\n构筑牌将被消耗，生成一张红色的「攻击牌」加入手牌。\n★ 攻击牌可双击直接释放，造成对应的属性伤害", target: "#btn-confirm" },
-      3: { title: "③ 释 放 攻 击 牌", body: "攻击牌已生成！\n双击手牌中红色边框的「攻击牌」，\n立即对敌人释放合成技能造成伤害。\n★ 攻击牌每回合结束自动消失，请及时使用", target: "#hand-area" },
+      1: { title: "① 构 筑 卡 牌", body: "★ 构筑规则：将人格面具卡拖入（或点击两次）下方 5 个构筑槽，\n合成更强的技能（按总力度×等级计算伤害）。\n\n现在请将「软泥怪」和「小宝剑」拖入（或点击两次放入）构筑槽", target: "#compose-slots" },
+      2: { title: "② 生 成 攻 击 牌", body: "卡牌已入构筑槽！\n点击「CONFIRM」按钮，\n构筑牌将被消耗，生成一张红色的「攻击牌」加入手牌。\n★ 攻击牌可点击两次直接释放，造成对应的属性伤害", target: "#btn-confirm" },
+      3: { title: "③ 释 放 攻 击 牌", body: "攻击牌已生成！\n点击两次手牌中红色边框的「攻击牌」，\n立即对敌人释放合成技能造成伤害。\n★ 攻击牌每回合结束自动消失，请及时使用", target: "#hand-area" },
       4: { title: "④ 抽 取 卡 牌", body: "已造成伤害！现在点击「DRAW」抽一张牌。\n★ 抽到的卡牌将决定下一步策略", target: "#btn-draw" },
       5: { title: "⑤ 翻 转 俄 耳 甫 斯", body: "★ 你抽到了俄耳甫斯！其逆位技能是「Agi（火焰）」\n点击俄耳甫斯选中后，按「FLIP」按钮翻转为逆位\n★ 敌人有火焰弱点（▼FIRE），逆位俄耳甫斯可造成双倍伤害并使其倒地", target: "#btn-flip" },
-      6: { title: "⑥ 打 出 俄 耳 甫 斯", body: "双击逆位的俄耳甫斯，直接释放其火焰技能！\n★ 弱点命中将显示「WEAK!」并使敌人倒地\n★ 全部敌人倒地后可发动总攻击", target: "#hand-area" },
-      7: { title: "⑦ 总 攻 击", body: "敌人已倒地！双击手牌中的「总攻击」卡，\n对全体敌人造成超大伤害！\n★ 总攻击有回合冷却，使用后解除倒地状态", target: "#hand-area" },
+      6: { title: "⑥ 打 出 俄 耳 甫 斯", body: "再点一次逆位的俄耳甫斯，直接释放其火焰技能！\n★ 弱点命中将显示「WEAK!」并使敌人倒地\n★ 全部敌人倒地后可发动总攻击", target: "#hand-area" },
+      7: { title: "⑦ 总 攻 击", body: "敌人已倒地！点击两次手牌中的「总攻击」卡，\n对全体敌人造成超大伤害！\n★ 总攻击有回合冷却，使用后解除倒地状态", target: "#hand-area" },
       8: { title: "⑧ 战 斗 胜 利", body: "击败所有敌人即可获胜！\n返回天鹅绒房间查看局外养成系统……", target: null },
     };
     const tip = tips[data.step];
@@ -206,18 +209,6 @@ export class UI {
       slot.dataset.idx = i;
       slot.innerHTML = `<span class="slot-label">0${i + 1}</span>`;
       slot.onclick = () => this.game.removeFromCompose(i);
-      // 拖放：允许将手牌拖入构筑槽
-      slot.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        slot.classList.add("drag-over");
-      });
-      slot.addEventListener("dragleave", () => slot.classList.remove("drag-over"));
-      slot.addEventListener("drop", (e) => {
-        e.preventDefault();
-        slot.classList.remove("drag-over");
-        const cardId = e.dataTransfer.getData("text/plain");
-        if (cardId) this.game.addToCompose(cardId);
-      });
       slotsEl.appendChild(slot);
       if (i < 4) {
         const arrow = document.createElement("div");
@@ -227,17 +218,9 @@ export class UI {
       }
     }
 
-    // 手牌区作为拖放目标：可将构筑槽中的卡拖回手牌
+    // 手牌区：拖拽目标由 Pointer Events 处理（见 attachCardPointer）
     const handArea = document.getElementById("hand-area");
-    handArea.addEventListener("dragover", (e) => e.preventDefault());
-    handArea.addEventListener("drop", (e) => {
-      e.preventDefault();
-      const cardId = e.dataTransfer.getData("text/plain");
-      if (!cardId) return;
-      // 若该卡位于构筑槽中，则移回手牌
-      const idx = this.game.composeSlots.findIndex(c => c && c.id === cardId);
-      if (idx >= 0) this.game.removeFromCompose(idx);
-    });
+    void handArea;
   }
 
   tryFlip() {
@@ -389,12 +372,8 @@ export class UI {
         const mini = this.buildCardEl(card, true);
         // 新入槽的卡触发入场动画
         if (!prevSlotIds.has(card.id)) mini.classList.add("card-enter");
-        // 槽内卡牌可拖回手牌
-        mini.draggable = true;
-        mini.addEventListener("dragstart", (e) => {
-          e.dataTransfer.setData("text/plain", card.id);
-          e.dataTransfer.effectAllowed = "move";
-        });
+        // 槽内卡牌可拖回手牌（Pointer Events，兼容触屏）
+        this.attachCardPointer(mini, card, true);
         // 右键也可翻转槽内的人格面具卡
         mini.addEventListener("contextmenu", (e) => {
           e.preventDefault();
@@ -461,17 +440,10 @@ export class UI {
       // 新抽到的卡触发入场动画
       if (!prevIds.has(card.id)) el.classList.add("card-enter");
 
-      // 拖动：将卡牌拖入构筑槽
-      el.draggable = true;
-      el.addEventListener("dragstart", (e) => {
-        if (this.clickTimer) { clearTimeout(this.clickTimer); this.clickTimer = null; }
-        e.dataTransfer.setData("text/plain", card.id);
-        e.dataTransfer.effectAllowed = "move";
-        el.classList.add("dragging");
-      });
-      el.addEventListener("dragend", () => el.classList.remove("dragging"));
+      // 拖动：将卡牌拖入构筑槽（Pointer Events，兼容鼠标+触屏）
+      this.attachCardPointer(el, card, false);
 
-      // 单击选中 / 双击使用（辅助卡直接发动，人格面具/宝剑入槽）
+      // 单击选中 / 再次点击使用（辅助卡直接发动，人格面具/宝剑入槽）
       el.addEventListener("click", () => this.onHandCardClick(card));
 
       // 右键翻转人格面具卡
@@ -485,31 +457,25 @@ export class UI {
     this._prevHandIds = curIds;
   }
 
-  // 区分单击（选中）与双击（使用）
+  // 单击选中 / 再次点击使用（移动端友好，替代双击）
   onHandCardClick(card) {
-    if (this.clickTimer) {
-      clearTimeout(this.clickTimer);
-      this.clickTimer = null;
-      this.onHandCardDblClick(card);
+    // 拖动或长按后产生的 click 直接忽略
+    if (this._suppressThisClick) { this._suppressThisClick = false; return; }
+    if (this.selectedCardId === card.id) {
+      this.useSelectedCard(card);
     } else {
-      this.clickTimer = setTimeout(() => {
-        this.clickTimer = null;
-        this.onHandCardSingleClick(card);
-      }, 250);
+      this.selectedCardId = card.id;
+      this.render();
     }
   }
 
-  onHandCardSingleClick(card) {
-    this.selectedCardId = card.id;
-    this.render();
-  }
-
-  onHandCardDblClick(card) {
+  // 使用当前卡牌（选中后再次点击触发）
+  useSelectedCard(card) {
     this.selectedCardId = card.id;
     const t = card.type;
     // 打出动画：克隆一张浮起消散（原元素会被 re-render 销毁）
     this.playCardFx(card);
-    // 辅助卡（权杖/圣杯/星币/总攻击/神通法/攻击牌）双击直接使用
+    // 辅助卡（权杖/圣杯/星币/总攻击/神通法/攻击牌）直接使用
     if (t === CARD_TYPE.WAND || t === CARD_TYPE.CUP || t === CARD_TYPE.PENTACLE) {
       this.game.useMinorCard(card);
     } else if (t === CARD_TYPE.ALL_OUT) {
@@ -528,6 +494,69 @@ export class UI {
         this.game.addToCompose(card.id);
       }
     }
+  }
+
+  // 卡牌指针交互：拖动（入槽/回手牌）+ 长按翻面（移动端替代右键）
+  attachCardPointer(el, card, inSlot) {
+    const game = this.game;
+
+    el.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      this._suppressThisClick = false;
+      const pid = e.pointerId;
+
+      // 长按翻面（仅人格面具卡）
+      clearTimeout(this._lpTimer);
+      this._lpTimer = setTimeout(() => {
+        this._suppressThisClick = true;
+        if (card.type === CARD_TYPE.PERSONA) game.flipCard(card.id);
+      }, 500);
+
+      this._drag = { x: e.clientX, y: e.clientY, active: false, pid, inSlot };
+    });
+
+    el.addEventListener("pointermove", (e) => {
+      const d = this._drag;
+      if (!d || e.pointerId !== d.pid) return;
+      const dx = e.clientX - d.x, dy = e.clientY - d.y;
+      if (!d.active && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+        d.active = true;
+        clearTimeout(this._lpTimer);
+        this._suppressThisClick = true;
+        try { el.setPointerCapture(d.pid); } catch (_) {}
+        el.classList.add("dragging");
+      }
+      if (d.active) {
+        const under = document.elementFromPoint(e.clientX, e.clientY);
+        const slot = under && under.closest ? under.closest(".slot") : null;
+        document.querySelectorAll(".slot.drag-over").forEach(s => s.classList.remove("drag-over"));
+        if (slot) slot.classList.add("drag-over");
+      }
+    });
+
+    const finish = (e) => {
+      const d = this._drag;
+      clearTimeout(this._lpTimer);
+      if (d && d.active && e.pointerId === d.pid) {
+        el.classList.remove("dragging");
+        document.querySelectorAll(".slot.drag-over").forEach(s => s.classList.remove("drag-over"));
+        const under = document.elementFromPoint(e.clientX, e.clientY);
+        const slot = under && under.closest ? under.closest(".slot") : null;
+        if (inSlot) {
+          // 从构筑槽拖回手牌
+          const ha = document.getElementById("hand-area");
+          if (under && ha && (under === ha || ha.contains(under))) {
+            const idx = game.composeSlots.findIndex(c => c && c.id === card.id);
+            if (idx >= 0) game.removeFromCompose(idx);
+          }
+        } else if (slot) {
+          game.addToCompose(card.id);
+        }
+      }
+      this._drag = null;
+    };
+    el.addEventListener("pointerup", finish);
+    el.addEventListener("pointercancel", finish);
   }
 
   // 打出卡牌的视觉特效：克隆元素上飘消散
@@ -600,16 +629,16 @@ export class UI {
       const up = card.skill_upright, rev = card.skill_reversed;
       tooltipText += `\n▲正位: ${up.name} [${POWER_INFO[up.power].label}] ${up.range === "ALL" ? "全体" : "单体"}`;
       tooltipText += `\n▼逆位: ${rev.name} [${POWER_INFO[rev.power].label}] ${rev.range === "ALL" ? "全体" : "单体"}`;
-      tooltipText += `\n双击使用当前朝向技能，或加入构筑槽合成`;
+      tooltipText += `\n再次点击使用当前朝向技能，或加入构筑槽合成`;
     } else if (skill) {
       tooltipText += `\n${skill.name} [${powerLabel}] ${skill.range === "ALL" ? "全体" : "单体"}`;
-      tooltipText += `\n小阿尔卡那：双击立即生效`;
+      tooltipText += `\n小阿尔卡那：再次点击立即生效`;
     } else if (card.type === CARD_TYPE.ALL_OUT) {
       tooltipText += `\n总攻击：全体大伤害\n需敌人全部倒地后获得`;
     } else if (card.type === CARD_TYPE.THEURGY) {
       tooltipText += `\n神通法：强力一击\n神通法槽满后可用`;
     } else if (card.type === CARD_TYPE.ATTACK) {
-      tooltipText += `\n${info.name}属性 [${powerLabel}] ${skill.range === "ALL" ? "全体" : "单体"}\n攻击牌：双击直接释放伤害，每回合结束后消失`;
+      tooltipText += `\n${info.name}属性 [${powerLabel}] ${skill.range === "ALL" ? "全体" : "单体"}\n攻击牌：再次点击直接释放伤害，每回合结束后消失`;
     }
     el.title = tooltipText;
 

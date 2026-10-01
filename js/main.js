@@ -147,3 +147,36 @@ loadStagesData().then(source => {
   console.error("关卡数据加载失败，使用默认值", e);
   renderProfileList();
 });
+
+// ---------- 移动端：横屏锁定与竖屏提示 ----------
+function checkOrientation() {
+  const hint = document.getElementById("rotate-hint");
+  if (!hint) return;
+  const isTouch = window.matchMedia("(pointer: coarse)").matches;
+  const portrait = window.innerHeight > window.innerWidth;
+  hint.classList.toggle("hidden", !(isTouch && portrait));
+}
+
+// 尝试锁定横屏（PWA 全屏 / 原生包装下生效；普通浏览器标签页可能忽略）
+function tryLockLandscape() {
+  try {
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock("landscape").catch(() => {});
+    }
+  } catch (_) {}
+}
+checkOrientation();
+tryLockLandscape();
+window.addEventListener("resize", checkOrientation);
+window.addEventListener("orientationchange", () => {
+  setTimeout(checkOrientation, 300);
+  tryLockLandscape();
+});
+
+// ---------- PWA Service Worker：离线缓存 + 可安装 ----------
+// 仅在 http/https 下注册（PWA 场景）；Electron 的 app:// 与本地 file:// 不注册
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.protocol === "http:")) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(e => console.warn("SW 注册失败", e));
+  });
+}
