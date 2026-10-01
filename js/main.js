@@ -1,23 +1,3 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-﻿// ============================================================
-// 游戏入口：初始化、缩放适配、Hub ↔ 战斗切换
-// ============================================================
-import { Game } from "./game.js?v=10";
-import { UI } from "./ui.js?v=10";
-import { MetaState } from "./meta.js?v=10";
-import { Hub } from "./hub.js?v=10";
-=======
-// ============================================================
-// 游戏入口：玩家档案选择、初始化、Hub ↔ 战斗切换
-// ============================================================
-import { Game } from "./game.js?v=16";
-import { UI } from "./ui.js?v=16";
-import { MetaState } from "./meta.js?v=16";
-import { Hub } from "./hub.js?v=16";
-import { loadStagesData } from "./data.js?v=16";
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
 // ============================================================
 // 游戏入口：玩家档案选择、初始化、Hub ↔ 战斗切换
 // ============================================================
@@ -26,7 +6,6 @@ import { UI } from "./ui.js?v=18";
 import { MetaState } from "./meta.js?v=18";
 import { Hub } from "./hub.js?v=18";
 import { loadStagesData } from "./data.js?v=18";
->>>>>>> feat-develop-game-plan-KtGMvY
 
 // 等比缩放适配
 function fitScreen() {
@@ -40,30 +19,12 @@ function fitScreen() {
 }
 window.addEventListener("resize", fitScreen);
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-// 初始化 meta 状态
-const meta = new MetaState();
-
-// 全局状态
-=======
 // 全局状态
 let meta = null;
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
-// 全局状态
-let meta = null;
->>>>>>> feat-develop-game-plan-KtGMvY
 let game = null;
 let ui = null;
 let hub = null;
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-// 显示 Hub
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
 // ---------- 玩家档案选择 ----------
 const profileScreen = document.getElementById("profile-screen");
 const profileListEl = document.getElementById("profile-list");
@@ -131,22 +92,10 @@ document.getElementById("btn-switch-profile").onclick = () => {
 };
 
 // ---------- Hub / 战斗切换 ----------
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
 function showHub() {
   document.getElementById("hub-screen").classList.remove("hidden");
   document.getElementById("game-root").classList.add("hidden");
   if (hub) hub.render();
-<<<<<<< HEAD
-<<<<<<< HEAD
-}
-
-// 显示战斗画面
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
   // 教程胜利后返回 Hub：显示局外养成引导
   if (game && game.isTutorial && game.tutorialStep === 8) {
     const tip = {
@@ -179,10 +128,6 @@ function showHub() {
   }
 }
 
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
 function showBattle(stageIndex) {
   document.getElementById("hub-screen").classList.add("hidden");
   document.getElementById("game-root").classList.remove("hidden");
@@ -190,19 +135,6 @@ function showBattle(stageIndex) {
   game = new Game(meta);
   ui = new UI(game, showHub);
   window.__game = game;
-<<<<<<< HEAD
-<<<<<<< HEAD
-  game.startStage(stageIndex);
-}
-
-// 启动 Hub
-hub = new Hub(meta, (stageIndex) => {
-  showBattle(stageIndex);
-});
-showHub();
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
   window.__ui = ui;
   game.startStage(stageIndex);
 }
@@ -215,7 +147,3 @@ loadStagesData().then(source => {
   console.error("关卡数据加载失败，使用默认值", e);
   renderProfileList();
 });
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY

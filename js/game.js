@@ -1,34 +1,14 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-﻿// ============================================================
-=======
 // ============================================================
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
-// ============================================================
->>>>>>> feat-develop-game-plan-KtGMvY
 // 游戏状态机：回合流程、牌库、战斗结算
 // ============================================================
 import {
   ARCANA, PERSONAS, MINOR_CARDS, ENEMIES, STAGES,
-  CARD_TYPE, RANK, RANK_LABEL, POWER, RANGE, ELEMENT, AFFINITY,
-<<<<<<< HEAD
-  STARTING_PERSONAS,
-  nextId,
-<<<<<<< HEAD
-} from "./data.js?v=10";
-import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=10";
-=======
-} from "./data.js?v=16";
-import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=16";
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
+  CARD_TYPE, RANK, RANK_LABEL, POWER, RANGE, ELEMENT, AFFINITY, AFFINITY_MULTIPLIER,
   ELEMENT_INFO, POWER_INFO,
-  STARTING_PERSONAS,
+  STARTING_PERSONAS, THEURGY_POOL, DEFAULT_THEURGY_CONFIG,
   nextId,
 } from "./data.js?v=18";
 import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=18";
->>>>>>> feat-develop-game-plan-KtGMvY
 
 // 卡牌工厂
 function makePersonaCard(key) {
@@ -63,8 +43,6 @@ function makeAllOutCard(power) {
     skill: { name: "All-Out Attack", element: ELEMENT.ALMIGHTY, power, range: RANGE.ALL },
   };
 }
-<<<<<<< HEAD
-=======
 // 构筑合成后产生的攻击牌：持有合成技能，双击直接释放
 function makeAttackCard(skill) {
   const info = ELEMENT_INFO[skill.element] || { name: "?", icon: "⚔" };
@@ -78,25 +56,14 @@ function makeAttackCard(skill) {
     powerLabel: pinfo.label,
   };
 }
->>>>>>> feat-develop-game-plan-KtGMvY
 
 export class Game {
   constructor(meta) {
     this.meta = meta || null;
     this.stageIndex = 0;
     this.arcana = (meta && meta.getArcana()) || ARCANA.FOOL;
-<<<<<<< HEAD
-<<<<<<< HEAD
-    // 从 meta 获取战斗属性（难度压缩后基础值 600/90/0.03/5/2）
-    const ms = meta ? meta.getBattlePlayerStats() : { attack: 90, maxHp: 600, critRate: 0.03, maxReversed: 2, theurgyMax: 2, handLimit: 5, arcanaLv: 1 };
-=======
     // 从 meta 获取战斗属性（难度压缩后基础值 300/18/0.03/5/2）
     const ms = meta ? meta.getBattlePlayerStats() : { attack: 18, maxHp: 300, critRate: 0.03, maxReversed: 2, theurgyMax: 2, handLimit: 5, arcanaLv: 1 };
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
-    // 从 meta 获取战斗属性（难度压缩后基础值 300/18/0.03/5/2）
-    const ms = meta ? meta.getBattlePlayerStats() : { attack: 18, maxHp: 300, critRate: 0.03, maxReversed: 2, theurgyMax: 2, handLimit: 5, arcanaLv: 1 };
->>>>>>> feat-develop-game-plan-KtGMvY
     this.arcanaLv = ms.arcanaLv || 1;
     this.player = {
       maxHp: ms.maxHp, hp: ms.maxHp, attack: ms.attack,
@@ -108,7 +75,14 @@ export class Game {
       arcanaBonus: this.arcana.bonusKey,
       arcanaLv: this.arcanaLv,
       maxReversed: ms.maxReversed,
+      // 主角相性（随阵营改变，最多1弱点2耐性）
+      affinities: meta ? meta.getPlayerAffinities() : {},
+      is_knocked_down: false, // 被弱点攻击命中后倒地一回合
     };
+    // 难度倍率（敌方伤害最终乘算）
+    this.enemyDamageMultiplier = meta ? meta.getEnemyDamageMultiplier() : 1.0;
+    // 神通法配置（3 个，战斗内随机抽取）
+    this.theurgyConfig = meta ? meta.getTheurgyConfig() : ["theurgy_maragi", "theurgy_mabufu", "theurgy_mazio"];
     this.deckLevel = 1;
     this.handLimit = ms.handLimit;
     this.theurgy = 0;
@@ -128,18 +102,9 @@ export class Game {
     this.firstComposeThisTurn = false;
     this.bonusCards = []; // 升级解锁的高阶卡 key（牌库重建时保留）
     this.supportBuffs = {}; // 辅助技能的临时 buff（tarukaja, rakukaja 等）
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
     this.allowPersonaRefresh = true; // 牌库重建时是否补充人格面具卡（首次或升级后）
     this.allOutUsedThisTurn = false; // 一回合内总攻击冷却
     this.lastUpgradeTurn = 0; // 上次升级的回合数（用于计算折扣）
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
-    this.allowPersonaRefresh = true; // 牌库重建时是否补充人格面具卡（首次或升级后）
-    this.allOutUsedThisTurn = false; // 一回合内总攻击冷却
-    this.lastUpgradeTurn = 0; // 上次升级的回合数（用于计算折扣）
->>>>>>> feat-develop-game-plan-KtGMvY
   }
 
   on(fn) { this.listeners.push(fn); }
@@ -156,15 +121,6 @@ export class Game {
     // 空池回退到初始人格面具
     if (!pool || pool.length === 0) pool = STARTING_PERSONAS;
     const deck = [];
-<<<<<<< HEAD
-<<<<<<< HEAD
-    // 人格面具卡：每个 2 张（限制总数避免牌库过大）
-    const usePool = pool.length > 10 ? pool.slice(0, 10) : pool;
-    usePool.forEach(key => { deck.push(makePersonaCard(key)); deck.push(makePersonaCard(key)); });
-    // 小阿尔卡那
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     // 人格面具卡：首次建造每个 1 张；再次重建时只补充小阿尔卡那（避免无限刷新强力技能）
     if (this.allowPersonaRefresh) {
       const usePool = pool.length > 10 ? pool.slice(0, 10) : pool;
@@ -174,24 +130,12 @@ export class Game {
     // 升级解锁的高阶卡（重建时保留）
     this.bonusCards.forEach(key => deck.push(makePersonaCard(key)));
     // 小阿尔卡那（每次重建都补充）
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     deck.push(makeMinorCard("wand"));
     deck.push(makeMinorCard("cup")); deck.push(makeMinorCard("cup"));
     deck.push(makeMinorCard("pentacle")); deck.push(makeMinorCard("pentacle"));
     // 宝剑
     deck.push(makeMinorCard("sword_sm")); deck.push(makeMinorCard("sword_md"));
     if (this.deckLevel >= 3) deck.push(makeMinorCard("sword_lg"));
-<<<<<<< HEAD
-<<<<<<< HEAD
-    // 升级解锁的高阶卡（重建时保留）
-    this.bonusCards.forEach(key => deck.push(makePersonaCard(key)));
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     this.deck = this.shuffle(deck);
   }
 
@@ -230,47 +174,17 @@ export class Game {
     this.player.drawCost *= 2;
     this.drawCard();
     this.log(`花费 ¥${cost} 抽取一张牌`, "gold");
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    // 教程：抽牌推进 step 3→4（此时应抽到俄耳甫斯）
-    if (this.isTutorial && this.tutorialStep === 3) {
-      this.tutorialStep = 4;
-      this.emit("tutorial", { step: 4 });
-    }
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
     // 教程：抽牌推进 step 4→5（此时应抽到俄耳甫斯）
     if (this.isTutorial && this.tutorialStep === 4) {
       this.tutorialStep = 5;
       this.emit("tutorial", { step: 5 });
     }
->>>>>>> feat-develop-game-plan-KtGMvY
     this.emit("state");
     return true;
   }
 
   // 升级牌库（费用 ×1.2）
   upgradeDeck() {
-<<<<<<< HEAD
-<<<<<<< HEAD
-    const costs = [600, 1200, 2400, 4800];
-    const cost = costs[this.deckLevel - 1] || 9999;
-    if (this.deckLevel >= 5) { this.log("牌库已满级", "info"); return false; }
-    if (this.player.money < cost) { this.log("资金不足！", "info"); return false; }
-    this.player.money -= cost;
-    this.deckLevel++;
-    this.handLimit = Math.min(8, this.handLimit + 1);
-    // 升级时解锁一张高阶卡（记入 bonusCards，牌库重建时保留）
-    const highCards = ["orpheus_tel", "high_pixie"];
-    const key = highCards[Math.floor(Math.random() * highCards.length)];
-    this.bonusCards.push(key);
-    this.deck.push(makePersonaCard(key));
-    this.shuffle(this.deck);
-    this.log(`牌库升至 Lv.${this.deckLevel}！解锁 ${PERSONAS[key].name}，手牌上限+1`, "gold");
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     const baseCosts = [600, 1200, 2400, 4800];
     const baseCost = baseCosts[this.deckLevel - 1] || 9999;
     // 每回合升级费用递减：第1回合-15%，第2回合-30%，第3回合及以后-50%；升级后重置
@@ -308,10 +222,6 @@ export class Game {
     this.shuffle(this.deck);
     const discountText = discount > 0 ? `（回合折扣 -${Math.round(discount * 100)}%）` : "";
     this.log(`牌库升至 Lv.${this.deckLevel}！解锁 ${key ? PERSONAS[key].name : "无"}，手牌上限+1，补充人格面具${discountText}`, "gold");
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     this.emit("state");
     return true;
   }
@@ -320,18 +230,9 @@ export class Game {
   startStage(idx) {
     this.stageIndex = idx;
     const stage = STAGES[idx];
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
     // 教程模式：标记 + 引导步骤计数（0=未触发,1=抽牌,2=出牌,3=构筑,4=完成）
     this.isTutorial = !!stage.isTutorial;
     this.tutorialStep = 0;
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
-    // 教程模式：标记 + 引导步骤计数（0=未触发,1=抽牌,2=出牌,3=构筑,4=完成）
-    this.isTutorial = !!stage.isTutorial;
-    this.tutorialStep = 0;
->>>>>>> feat-develop-game-plan-KtGMvY
     // 多波次 + 环境减益
     this.waves = stage.waves || [stage.enemies];
     this.waveIndex = 0;
@@ -351,16 +252,16 @@ export class Game {
       this.arcanaLv = ms.arcanaLv || 1;
       this.player.arcanaBonus = this.arcana.bonusKey;
       this.player.arcanaLv = this.arcanaLv;
+      // 同步主角相性（随阵营改变）
+      this.player.affinities = this.meta.getPlayerAffinities();
+      this.player.is_knocked_down = false;
+      // 同步难度倍率与神通法配置
+      this.enemyDamageMultiplier = this.meta.getEnemyDamageMultiplier();
+      this.theurgyConfig = this.meta.getTheurgyConfig();
     }
 
     this.bonusCards = []; // 每关重置高阶卡解锁
     this.supportBuffs = {}; // 重置辅助 buff
-<<<<<<< HEAD
-<<<<<<< HEAD
-    this.buildDeck();
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     this.allowPersonaRefresh = true; // 关卡开始允许补充人格面具卡
     if (this.isTutorial) {
       // 教程关：固定牌库（pop 顺序：软泥怪 → 小宝剑 → 俄耳甫斯）
@@ -374,10 +275,6 @@ export class Game {
     } else {
       this.buildDeck();
     }
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     this.theurgy = 0;
     this.theurgyUses = 0;
     this.player.hp = this.player.maxHp;
@@ -385,20 +282,11 @@ export class Game {
     const envNames = this.environment.length ? ` | 环境：${this.environment.map(e => e).join(",")}` : "";
     this.log(`【${stage.name}】战斗开始！阵营：${this.arcana.name}（Lv.${this.arcanaLv}）${envNames}`, "info");
     this.emit("stageStart", stage);
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     if (this.isTutorial) {
       this.tutorialStep = 1;
       this.emit("tutorial", { step: 1 });
       this.log("【教程】将软泥怪与小宝剑拖入下方构筑槽，尝试构筑合成技能", "info");
     }
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     this.startTurn();
   }
 
@@ -411,14 +299,7 @@ export class Game {
         id: `e${i}_${waveIdx}`, key: k, name: e.name, icon: e.icon,
         level: e.level, maxHp: e.hp, hp: e.hp,
         affinities: { ...e.affinities },
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
         revealedAffinities: new Set(), // 受对应属性伤害后才揭示
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
-        revealedAffinities: new Set(), // 受对应属性伤害后才揭示
->>>>>>> feat-develop-game-plan-KtGMvY
         skills: e.skills, attack: e.attack,
         is_knocked_down: false, intent: null,
       };
@@ -433,15 +314,9 @@ export class Game {
     this.firstComposeThisTurn = true;
     this.player.cupStack = 0;
     this.player.drawCost = 60;
+    this.player.is_knocked_down = false; // 主角回合开始时恢复站立
     this.supportBuffs = {}; // 每回合清除辅助 buff
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
     this.allOutUsedThisTurn = false; // 重置总攻击冷却
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
-    this.allOutUsedThisTurn = false; // 重置总攻击冷却
->>>>>>> feat-develop-game-plan-KtGMvY
     // 回合资金：80 + 回合数×15
     let income = 80 + this.turn * 15;
     // 教皇阵营：按等级 +¥30/+¥60/+¥80（Lv3 起手额外 +¥100）
@@ -469,12 +344,6 @@ export class Game {
     if (this.player.arcanaBonus === "EXTRA_DRAW") {
       drawNum += [1, 2, 2][this.arcanaLv - 1] || 1;
     }
-<<<<<<< HEAD
-<<<<<<< HEAD
-    this.drawCards(drawNum);
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     // 教程：第一回合固定发软泥怪 + 小宝剑；第二回合后正常发牌
     if (this.isTutorial && this.turn === 1) {
       this.drawCards(2); // 抽软泥怪 + 小宝剑
@@ -484,18 +353,11 @@ export class Game {
     } else {
       this.drawCards(drawNum);
     }
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-
-    // 清除总攻击卡
-    this.hand = this.hand.filter(c => c.type !== CARD_TYPE.ALL_OUT);
-=======
 
     // 清除总攻击卡
     this.hand = this.hand.filter(c => c.type !== CARD_TYPE.ALL_OUT);
     // 清除上一回合留下的攻击牌
     this.hand = this.hand.filter(c => c.type !== CARD_TYPE.ATTACK);
->>>>>>> feat-develop-game-plan-KtGMvY
 
     // 敌人意图
     this.rollEnemyIntents();
@@ -520,11 +382,8 @@ export class Game {
     this.player.cupStack = 0;
     // 移除总攻击卡
     this.hand = this.hand.filter(c => c.type !== CARD_TYPE.ALL_OUT);
-<<<<<<< HEAD
-=======
     // 移除攻击牌（每回合清除）
     this.hand = this.hand.filter(c => c.type !== CARD_TYPE.ATTACK);
->>>>>>> feat-develop-game-plan-KtGMvY
     this.state = "ENEMY_ACTION";
     this.emit("state");
     this.enemyTurn();
@@ -532,6 +391,7 @@ export class Game {
 
   enemyTurn() {
     let idx = 0;
+    let extraAttackDone = false; // 本回合是否已触发过倒地追加攻击
     const act = () => {
       if (idx >= this.enemies.length) {
         this.afterEnemyTurn();
@@ -565,11 +425,44 @@ export class Game {
       // 敌人伤害
       const dmg = this.calcEnemyDamage(skill, e);
       this.damagePlayer(dmg);
+      // 主角弱点命中 → 倒地一回合 + 随机敌人追加攻击（每回合仅触发一次）
+      const pAff = this.player.affinities?.[skill.element];
+      if (pAff === AFFINITY.WEAK && dmg > 0 && !this.player.is_knocked_down && !extraAttackDone) {
+        this.player.is_knocked_down = true;
+        this.log(`弱点命中！主角倒地！（受到 ${dmg} 伤害）`, "dmg");
+        this.emit("playerKnockedDown");
+        extraAttackDone = true;
+        this.emit("state");
+        if (this.player.hp <= 0) { this.battleEnd(false); return; }
+        // 倒地期间受到伤害不变；随机一个存活敌人发动追加攻击
+        setTimeout(() => this.triggerExtraEnemyAttack(act), 600);
+        return;
+      }
       this.emit("enemyAct", { enemy: e, skill });
       if (this.player.hp <= 0) { this.battleEnd(false); return; }
       setTimeout(act, 700);
     };
     act();
+  }
+
+  // 主角倒地时，随机一个存活敌人发动一次追加攻击
+  triggerExtraEnemyAttack(callback) {
+    const alive = this.enemies.filter(e => e.hp > 0 && !e.is_knocked_down);
+    if (alive.length === 0) { callback(); return; }
+    const e = alive[Math.floor(Math.random() * alive.length)];
+    const skill = e.skills[Math.floor(Math.random() * e.skills.length)];
+    // 跳过恢复类的追加攻击（仅造成伤害）
+    if (skill.element === ELEMENT.HEAL) {
+      callback();
+      return;
+    }
+    this.log(`💢 ${e.name} 趁机发动追加攻击！`, "dmg");
+    this.emit("enemyAttack", { enemy: e, skill });
+    const dmg = this.calcEnemyDamage(skill, e);
+    this.damagePlayer(dmg);
+    this.emit("enemyAct", { enemy: e, skill });
+    if (this.player.hp <= 0) { this.battleEnd(false); return; }
+    setTimeout(callback, 700);
   }
 
   calcEnemyDamage(skill, enemy) {
@@ -578,6 +471,19 @@ export class Game {
     // 环境减益：敌方攻击+25%
     if (this.environment.includes("ENEMY_ATK_UP")) base *= 1.25;
     let dmg = Math.round(base);
+    // 难度倍率（最终乘算：0级=0.5，10级=1.5）
+    dmg = Math.round(dmg * this.enemyDamageMultiplier);
+
+    // 主角相性：弱点 ×1.5，耐性 ×0.5
+    const pAff = this.player.affinities?.[skill.element];
+    if (pAff === AFFINITY.WEAK) {
+      dmg = Math.round(dmg * AFFINITY_MULTIPLIER.WEAK); // 1.5
+    } else if (pAff === AFFINITY.RESIST) {
+      dmg = Math.round(dmg * AFFINITY_MULTIPLIER.RESIST); // 0.5
+    } else if (pAff === AFFINITY.NULL) {
+      return 0; // 无效化
+    }
+
     // 节制阵营：按等级 减伤 10%/15%/20%
     if (this.player.arcanaBonus === "DAMAGE_REDUCE") {
       const reduce = [0.10, 0.15, 0.20][this.arcanaLv - 1] || 0.10;
@@ -585,7 +491,7 @@ export class Game {
     }
     // 防御 buff
     if (this.supportBuffs.DEF_UP) dmg = Math.round(dmg * 0.65);
-    return Math.max(1, dmg);
+    return Math.max(0, dmg);
   }
 
   afterEnemyTurn() {
@@ -629,22 +535,11 @@ export class Game {
     }
     card.is_reversed = !card.is_reversed;
     this.log(`${card.name} → ${card.is_reversed ? "逆位" : "正位"}`, "info");
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    // 教程：翻转俄耳甫斯推进 step 4→5
-    if (this.isTutorial && this.tutorialStep === 4 && card.cardKey === "orpheus" && card.is_reversed) {
-      this.tutorialStep = 5;
-      this.emit("tutorial", { step: 5 });
-    }
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
     // 教程：翻转俄耳甫斯推进 step 5→6
     if (this.isTutorial && this.tutorialStep === 5 && card.cardKey === "orpheus" && card.is_reversed) {
       this.tutorialStep = 6;
       this.emit("tutorial", { step: 6 });
     }
->>>>>>> feat-develop-game-plan-KtGMvY
     this.emit("state");
     return true;
   }
@@ -664,28 +559,16 @@ export class Game {
     // 总攻击卡 / 神通法卡直接打出
     if (card.type === CARD_TYPE.ALL_OUT) { this.useAllOut(card); return true; }
     if (card.type === CARD_TYPE.THEURGY) { this.useTheurgy(card); return true; }
-<<<<<<< HEAD
-
-    this.hand.splice(idx, 1);
-    this.composeSlots.push(card);
-<<<<<<< HEAD
-=======
-=======
     // 攻击牌直接释放（不入构筑槽）
     if (card.type === CARD_TYPE.ATTACK) { this.useAttackCard(card); return true; }
 
     this.hand.splice(idx, 1);
     this.composeSlots.push(card);
->>>>>>> feat-develop-game-plan-KtGMvY
     // 教程：首次拖入构筑推进 step 1→2
     if (this.isTutorial && this.tutorialStep === 1) {
       this.tutorialStep = 2;
       this.emit("tutorial", { step: 2 });
     }
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     this.emit("state");
     return true;
   }
@@ -715,26 +598,6 @@ export class Game {
       this.player.cupStack += stacks;
       this.log(`圣杯层数 +${stacks}（当前 ${this.player.cupStack}）`, "gold");
     } else if (card.type === CARD_TYPE.PENTACLE) {
-<<<<<<< HEAD
-<<<<<<< HEAD
-      const gain = 200 + this.turn * 10;
-      this.player.money += gain;
-      this.log(`星币：获得 ¥${gain}`, "gold");
-    } else if (card.type === CARD_TYPE.WAND) {
-      // 从牌库检索 rank+1 的随机卡加入手牌
-      const higher = this.deck.filter(c => c.type === CARD_TYPE.PERSONA && c.rank >= 2);
-      if (higher.length) {
-        const pick = higher[Math.floor(Math.random() * higher.length)];
-        const di = this.deck.indexOf(pick);
-        this.deck.splice(di, 1);
-        if (this.hand.length < this.handLimit) {
-          this.hand.push(pick);
-          this.log(`权杖：获得 ${pick.name}`, "gold");
-        } else { this.log("手牌已满，权杖效果失效", "info"); }
-      } else { this.log("牌库中没有更高阶卡牌", "info"); }
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
       // 星币：基础 200 + 回合×10 + 牌库等级×30（随牌库等级略微上升）
       const gain = 200 + this.turn * 10 + (this.deckLevel - 1) * 30;
       this.player.money += gain;
@@ -750,10 +613,6 @@ export class Game {
       } else {
         this.log("未解锁任何人格面具，权杖效果失效", "info");
       }
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     }
     this.emit("state");
   }
@@ -774,16 +633,6 @@ export class Game {
 
   // 总攻击
   useAllOut(card) {
-<<<<<<< HEAD
-<<<<<<< HEAD
-    const idx = this.hand.findIndex(c => c.id === card.id);
-    if (idx < 0) return;
-    this.hand.splice(idx, 1);
-    this.log(`⚔ 总攻击发动！⚔`, "gold");
-    this.executeSkill(card.skill, card);
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     // 一回合内总攻击冷却
     if (this.allOutUsedThisTurn) {
       this.log("本回合已使用过总攻击，需下回合才能再次发动", "info");
@@ -797,30 +646,16 @@ export class Game {
     this.executeSkill(card.skill, card);
     // 总攻击结束后立即解除所有敌人倒地状态，避免无限总攻击链
     this.enemies.forEach(e => { if (e.hp > 0) e.is_knocked_down = false; });
-<<<<<<< HEAD
-    // 教程：总攻击推进 step 6→7
-    if (this.isTutorial && this.tutorialStep === 6) {
-      this.tutorialStep = 7;
-      this.emit("tutorial", { step: 7 });
-    }
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
     // 教程：总攻击推进 step 7→8
     if (this.isTutorial && this.tutorialStep === 7) {
       this.tutorialStep = 8;
       this.emit("tutorial", { step: 8 });
     }
->>>>>>> feat-develop-game-plan-KtGMvY
     this.emit("state");
     // 总攻击可能击杀敌人，需检查战斗结束
     this.checkBattleEnd();
   }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
   // 教程专用：直接打出人格面具技能（不进构筑槽）
   usePersonaDirect(card) {
     if (this.state !== "PLAYER_ACTION") return false;
@@ -831,29 +666,17 @@ export class Game {
     this.hand.splice(idx, 1);
     this.log(`使用 ${card.name}（${card.is_reversed ? "逆位" : "正位"}）：${skill.name}`, "info");
     this.executeSkill(skill, card);
-<<<<<<< HEAD
-    // 教程：打出俄耳甫斯推进 step 5→6（敌人倒地后才能用总攻击）
-    if (this.isTutorial && this.tutorialStep === 5) {
-      this.tutorialStep = 6;
-      this.emit("tutorial", { step: 6 });
-=======
     // 教程：打出俄耳甫斯推进 step 6→7（敌人倒地后才能用总攻击）
     if (this.isTutorial && this.tutorialStep === 6) {
       this.tutorialStep = 7;
       this.emit("tutorial", { step: 7 });
->>>>>>> feat-develop-game-plan-KtGMvY
     }
     this.emit("state");
     this.checkBattleEnd();
     return true;
   }
 
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-  // 确认构筑 → 打出合成技能
-=======
   // 确认构筑 → 消耗构筑牌，生成一张攻击牌加入手牌（双击攻击牌释放技能）
->>>>>>> feat-develop-game-plan-KtGMvY
   confirmCompose() {
     if (this.composeSlots.length === 0) { this.log("构筑区为空", "info"); return false; }
     // 环境减益：构筑需至少 2 张牌
@@ -870,14 +693,6 @@ export class Game {
     this.firstComposeThisTurn = false;
 
     const names = this.composeSlots.map(c => c.name).join(" + ");
-<<<<<<< HEAD
-    this.log(`构筑：${names} → ${skill.element} ${skill.range}`, "info");
-
-    this.composeSlots = []; // 消耗卡牌
-    this.executeSkill(skill, null);
-<<<<<<< HEAD
-=======
-=======
     this.log(`构筑：${names} → 生成攻击牌（${skill.element} ${skill.range}）`, "info");
 
     this.composeSlots = []; // 消耗构筑卡牌
@@ -886,16 +701,11 @@ export class Game {
     this.hand.push(atkCard);
     this.emit("attackCardCreated", { card: atkCard });
 
->>>>>>> feat-develop-game-plan-KtGMvY
     // 教程：首次构筑完成推进 step 2→3
     if (this.isTutorial && this.tutorialStep === 2) {
       this.tutorialStep = 3;
       this.emit("tutorial", { step: 3 });
     }
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-    this.emit("state");
-=======
     this.emit("state");
     return true;
   }
@@ -918,7 +728,6 @@ export class Game {
       this.tutorialStep = 4;
       this.emit("tutorial", { step: 4 });
     }
->>>>>>> feat-develop-game-plan-KtGMvY
     this.checkBattleEnd();
     return true;
   }
@@ -934,15 +743,7 @@ export class Game {
     if ((this.player.arcanaBonus === "FIRE_DMG" && effSkill.element === ELEMENT.FIRE) ||
         (this.player.arcanaBonus === "ELEC_DMG" && effSkill.element === ELEMENT.ELEC)) {
       if (this.arcanaLv >= 2) {
-<<<<<<< HEAD
-<<<<<<< HEAD
-        effSkill = { ...effSkill, power: Math.min(POWER.XH, effSkill.power + 1) };
-=======
         effSkill = { ...effSkill, power: Math.min(POWER.UL, effSkill.power + 1) };
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
-        effSkill = { ...effSkill, power: Math.min(POWER.UL, effSkill.power + 1) };
->>>>>>> feat-develop-game-plan-KtGMvY
       }
       if (this.arcanaLv >= 3) {
         effSkill = { ...effSkill, range: RANGE.ALL };
@@ -1036,12 +837,6 @@ export class Game {
       finalDmg = Math.round(finalDmg * 1.5);
     }
     enemy.hp = Math.max(0, enemy.hp - finalDmg);
-<<<<<<< HEAD
-<<<<<<< HEAD
-    this.emit("enemyHit", { enemy, dmg: finalDmg, crit: result.isCrit, affinity: result.affinity });
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     // 揭示敌人对应属性的相性
     if (skill && skill.element) {
       if (!enemy.revealedAffinities) enemy.revealedAffinities = new Set();
@@ -1052,10 +847,6 @@ export class Game {
     if (enemy.hp <= 0) {
       this.emit("enemyDeath", { enemy });
     }
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
 
     if (result.damage === 0 && result.affinity === AFFINITY.NULL) {
       this.log(`${enemy.name} 无效化了攻击`, "info");
@@ -1064,15 +855,6 @@ export class Game {
                      result.affinity === AFFINITY.RESIST ? "（耐性）" : "";
       this.log(`对 ${enemy.name} 造成 ${result.damage} 伤害${affTxt}${result.isCrit ? " 暴击！" : ""}`, result.affinity === AFFINITY.WEAK ? "dmg" : "info");
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-      // 弱点 → 倒地 + 神通法槽+20%
-      if (result.affinity === AFFINITY.WEAK) {
-        enemy.is_knocked_down = true;
-        this.addTheurgy(20);
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
       // 弱点 → 倒地 + 神通法槽+20% + 立即抽一张手牌
       if (result.affinity === AFFINITY.WEAK) {
         enemy.is_knocked_down = true;
@@ -1086,10 +868,6 @@ export class Game {
         } else if (this.hand.length >= this.handLimit) {
           this.log("弱点命中！但手牌已满", "info");
         }
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
       }
       // 暴击 → 神通法+10%
       if (result.isCrit) this.addTheurgy(10);
@@ -1128,9 +906,11 @@ export class Game {
     this.theurgy = Math.min(100, this.theurgy + amt);
     if (this.theurgy >= 100) {
       this.theurgy = 0;
-      // 随机获得一张神通法卡
-      const pool = ["theurgy_maragi", "theurgy_mabufu", "theurgy_mazio", "theurgy_media"];
-      const key = pool[Math.floor(Math.random() * pool.length)];
+      // 从 Hub 配置的神通法中随机抽取；不足 3 个时回退到默认配置
+      const cfg = (this.theurgyConfig && this.theurgyConfig.length >= 3)
+        ? this.theurgyConfig
+        : DEFAULT_THEURGY_CONFIG;
+      const key = cfg[Math.floor(Math.random() * cfg.length)];
       if (this.hand.length < this.handLimit) {
         this.hand.push(makeTheurgyCard(key));
         this.log(`神通法槽满！获得 ${PERSONAS[key].name}`, "gold");
@@ -1169,20 +949,10 @@ export class Game {
         this.spawnWave(this.waveIndex);
         this.composeSlots = [];
         this.hand = this.hand.filter(c => c.type !== CARD_TYPE.ALL_OUT);
-<<<<<<< HEAD
-        this.firstComposeThisTurn = true;
-        this.rollEnemyIntents();
-<<<<<<< HEAD
-        this.log(`▶ 第 ${this.waveIndex + 1}/${this.waves.length} 波来袭！`, "info");
-=======
-        this.log(`▶ 新的暗影将你包围了！（第 ${this.waveIndex + 1}/${this.waves.length} 波）`, "info");
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
         this.hand = this.hand.filter(c => c.type !== CARD_TYPE.ATTACK);
         this.firstComposeThisTurn = true;
         this.rollEnemyIntents();
         this.log(`▶ 新的暗影将你包围了！（第 ${this.waveIndex + 1}/${this.waves.length} 波）`, "info");
->>>>>>> feat-develop-game-plan-KtGMvY
         this.emit("waveStart", { waveIndex: this.waveIndex, total: this.waves.length });
         this.emit("state");
       }
@@ -1191,8 +961,10 @@ export class Game {
 
   battleEnd(victory) {
     this.state = "BATTLE_END";
+    let reward = null;
     if (victory) {
       const stage = STAGES[this.stageIndex];
+      reward = { exp: stage.reward.exp, money: stage.reward.money };
       this.log(`🎉 胜利！获得 ${stage.reward.exp} 经验，◈${stage.reward.money} 精魄`, "gold");
       // 通过 meta 记录经验和精魄（meta.money = 精魄，持久；局内 player.money 不持久）
       if (this.meta) {
@@ -1209,21 +981,11 @@ export class Game {
     } else {
       this.log(`💀 战斗失败...`, "dmg");
     }
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    // 教程胜利后标记 step 7（返回 Hub 时由 UI 显示局外养成引导）
-    if (victory && this.isTutorial && this.tutorialStep === 7) {
-      this.tutorialStep = 8;
-    }
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
     // 教程胜利后标记 step 8→9（返回 Hub 时由 UI 显示局外养成引导）
     if (victory && this.isTutorial && this.tutorialStep === 8) {
       this.tutorialStep = 9;
     }
->>>>>>> feat-develop-game-plan-KtGMvY
-    this.emit("battleEnd", { victory });
+    this.emit("battleEnd", { victory, reward });
   }
 
   // 获取当前构筑的合成技能（用于预览，不含阵营增益）
@@ -1249,15 +1011,7 @@ export class Game {
       else if (lv === 2 && this.firstComposeThisTurn) bonus = true;
       else if (lv === 3) bonus = true; // 所有构筑+1阶
       if (bonus) {
-<<<<<<< HEAD
-<<<<<<< HEAD
-        eff.power = Math.min(eff.power + 1, POWER.XH);
-=======
         eff.power = Math.min(eff.power + 1, POWER.UL);
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
-        eff.power = Math.min(eff.power + 1, POWER.UL);
->>>>>>> feat-develop-game-plan-KtGMvY
         eff.foolBonus = true;
       }
     }

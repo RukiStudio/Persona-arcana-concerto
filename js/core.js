@@ -1,26 +1,10 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-﻿// ============================================================
-=======
 // ============================================================
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
-// ============================================================
->>>>>>> feat-develop-game-plan-KtGMvY
 // 核心规则引擎：技能合成、相性、伤害计算
 // ============================================================
 import {
   ELEMENT, POWER, POWER_MULTIPLIER, AFFINITY, AFFINITY_MULTIPLIER,
   RANGE, CARD_TYPE,
-<<<<<<< HEAD
-<<<<<<< HEAD
-} from "./data.js?v=10";
-=======
-} from "./data.js?v=16";
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
 } from "./data.js?v=18";
->>>>>>> feat-develop-game-plan-KtGMvY
 
 /**
  * 获取卡牌当前生效的技能数据
@@ -57,15 +41,7 @@ export function composeSkill(cards) {
     // 规则4：万能属性同时改变属性和力度
     if (skill.element === ELEMENT.ALMIGHTY) {
       result.element = ELEMENT.ALMIGHTY;
-<<<<<<< HEAD
-<<<<<<< HEAD
-      result.power = Math.min(result.power + skill.power, POWER.XH);
-=======
       result.power = Math.min(result.power + skill.power, POWER.UL);
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
-      result.power = Math.min(result.power + skill.power, POWER.UL);
->>>>>>> feat-develop-game-plan-KtGMvY
       result.range = skill.range;
       continue;
     }
@@ -74,15 +50,7 @@ export function composeSkill(cards) {
     if (skill.element !== result.element) {
       result.element = skill.element;
     }
-<<<<<<< HEAD
-<<<<<<< HEAD
-    result.power = Math.min(result.power + skill.power, POWER.XH);
-=======
     result.power = Math.min(result.power + skill.power, POWER.UL);
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
-    result.power = Math.min(result.power + skill.power, POWER.UL);
->>>>>>> feat-develop-game-plan-KtGMvY
 
     // 规则3：范围由最后一张卡决定
     result.range = skill.range;

@@ -3,15 +3,7 @@
 // ============================================================
 import {
   PERSONAS, ARCANA, getFusionArcana, RANK, RANK_LABEL, SKILLS,
-<<<<<<< HEAD
-<<<<<<< HEAD
-} from "./data.js?v=10";
-=======
-} from "./data.js?v=16";
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
 } from "./data.js?v=18";
->>>>>>> feat-develop-game-plan-KtGMvY
 
 /**
  * 获取合体结果的人格面具

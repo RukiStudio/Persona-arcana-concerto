@@ -6,29 +6,8 @@ import {
   EXP_CURVE, MAX_PLAYER_LEVEL, STAT_POINTS_PER_LEVEL,
   STAT_UPGRADE_COSTS, STAT_INCREMENTS,
   STARTING_PERSONAS, RANK,
-<<<<<<< HEAD
-<<<<<<< HEAD
-} from "./data.js?v=10";
-
-const SAVE_KEY = "persona_concerto_save_v1";
-
-export class MetaState {
-  constructor() {
-    this.load();
-  }
-
-  // ---------- 存档 ----------
-  load() {
-    let saved = null;
-    try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (raw) saved = JSON.parse(raw);
-    } catch (e) { /* ignore */ }
-=======
-} from "./data.js?v=16";
-=======
+  DEFAULT_THEURGY_CONFIG, THEURGY_POOL,
 } from "./data.js?v=18";
->>>>>>> feat-develop-game-plan-KtGMvY
 
 const SAVE_KEY = "persona_concerto_save_v1";        // 旧版单存档（迁移用）
 const PROFILES_KEY = "persona_concerto_profiles_v1"; // 多玩家档案（每个玩家独立存档）
@@ -91,10 +70,6 @@ export class MetaState {
   load() {
     const profiles = readProfiles();
     const saved = profiles[this.profileName] || null;
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
 
     this.playerLevel = saved?.playerLevel ?? 1;
     this.exp = saved?.exp ?? 0;
@@ -105,10 +80,14 @@ export class MetaState {
     this.compendium = new Set(saved?.compendium ?? STARTING_PERSONAS);
     this.clearedStages = saved?.clearedStages ?? [];
     // 永久属性加成（来自属性点分配）
-    this.bonusStats = saved?.bonusStats ?? { attack: 0, maxHp: 0, critRate: 0, maxReversed: 0, theurgyMax: 0 };
+    this.bonusStats = saved?.bonusStats ?? { attack: 0, maxHp: 0, critRate: 0, maxReversed: 0, theurgyMax: 0, handLimit: 0 };
     // 永久购买加成
     this.bonusHandLimit = saved?.bonusHandLimit ?? 0;
     this.bonusTheurgyMax = saved?.bonusTheurgyMax ?? 0;
+    // 难度等级（0~10，影响敌方伤害倍率）
+    this.difficulty = saved?.difficulty ?? 0;
+    // 神通法配置（必须 3 个，从 THEURGY_POOL 中选取）
+    this.theurgyConfig = saved?.theurgyConfig ?? [...DEFAULT_THEURGY_CONFIG];
     // 阵营特性等级表（每个阵营 1~3 级，初始 1）
     const defaultLevels = {};
     Object.keys(ARCANA).forEach(k => { defaultLevels[k] = 1; });
@@ -128,20 +107,10 @@ export class MetaState {
       bonusStats: this.bonusStats,
       bonusHandLimit: this.bonusHandLimit,
       bonusTheurgyMax: this.bonusTheurgyMax,
+      difficulty: this.difficulty,
+      theurgyConfig: this.theurgyConfig,
       arcanaLevels: this.arcanaLevels,
     };
-<<<<<<< HEAD
-<<<<<<< HEAD
-    try {
-      localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-    } catch (e) { /* ignore */ }
-  }
-
-  reset() {
-    localStorage.removeItem(SAVE_KEY);
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     const profiles = readProfiles();
     profiles[this.profileName] = data;
     writeProfiles(profiles);
@@ -151,10 +120,6 @@ export class MetaState {
     const profiles = readProfiles();
     profiles[this.profileName] = null;
     writeProfiles(profiles);
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     this.load();
   }
 
@@ -199,20 +164,11 @@ export class MetaState {
     const lvl = this.bonusStats[stat] ?? 0;
     // 难度压缩后的基础值
     if (stat === "critRate") return { base: "3%", bonus: `+${(lvl * inc * 100).toFixed(0)}%`, total: `${((0.03 + lvl * inc) * 100).toFixed(0)}%` };
-<<<<<<< HEAD
-<<<<<<< HEAD
-    if (stat === "maxHp") return { base: "600", bonus: `+${lvl * inc}`, total: String(600 + lvl * inc) };
-    if (stat === "attack") return { base: "90", bonus: `+${lvl * inc}`, total: String(90 + lvl * inc) };
-=======
     if (stat === "maxHp") return { base: "300", bonus: `+${lvl * inc}`, total: String(300 + lvl * inc) };
     if (stat === "attack") return { base: "18", bonus: `+${lvl * inc}`, total: String(18 + lvl * inc) };
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
-    if (stat === "maxHp") return { base: "300", bonus: `+${lvl * inc}`, total: String(300 + lvl * inc) };
-    if (stat === "attack") return { base: "18", bonus: `+${lvl * inc}`, total: String(18 + lvl * inc) };
->>>>>>> feat-develop-game-plan-KtGMvY
     if (stat === "maxReversed") return { base: "2", bonus: `+${lvl}`, total: String(2 + lvl) };
     if (stat === "theurgyMax") return { base: "2", bonus: `+${lvl}`, total: String(2 + lvl) };
+    if (stat === "handLimit") return { base: "5", bonus: `+${lvl}`, total: String(5 + lvl) };
     return { base: "0", bonus: "", total: "0" };
   }
 
@@ -221,22 +177,12 @@ export class MetaState {
     const s = this.bonusStats;
     const arcana = ARCANA[this.arcanaId];
     const arcanaLv = this.getArcanaLevel(this.arcanaId);
-<<<<<<< HEAD
-<<<<<<< HEAD
-    let attack = 90 + (s.attack ?? 0) * STAT_INCREMENTS.attack;
-    let maxHp = 600 + (s.maxHp ?? 0) * STAT_INCREMENTS.maxHp;
-=======
     let attack = 18 + (s.attack ?? 0) * STAT_INCREMENTS.attack;
   let maxHp = 300 + (s.maxHp ?? 0) * STAT_INCREMENTS.maxHp;
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
-    let attack = 18 + (s.attack ?? 0) * STAT_INCREMENTS.attack;
-  let maxHp = 300 + (s.maxHp ?? 0) * STAT_INCREMENTS.maxHp;
->>>>>>> feat-develop-game-plan-KtGMvY
     let critRate = 0.03 + (s.critRate ?? 0) * STAT_INCREMENTS.critRate;
     let maxReversed = 2 + (s.maxReversed ?? 0);
     let theurgyMax = 2 + (s.theurgyMax ?? 0) + this.bonusTheurgyMax;
-    let handLimit = 5 + this.bonusHandLimit;
+    let handLimit = 5 + (s.handLimit ?? 0) + this.bonusHandLimit;
 
     // 阵营特性按等级应用（仅基础属性部分；其它效果在 game.js/core.js 内分级应用）
     if (arcana?.bonusKey === "FLAT_ATK") {
@@ -314,6 +260,35 @@ export class MetaState {
 
   getArcana() { return ARCANA[this.arcanaId]; }
 
+  // ---------- 主角相性（随阵营改变） ----------
+  getPlayerAffinities() {
+    return ARCANA[this.arcanaId]?.affinities || {};
+  }
+
+  // ---------- 难度（0~10，敌方伤害倍率 0.5~1.5） ----------
+  getDifficulty() { return this.difficulty; }
+  setDifficulty(level) {
+    const lv = Math.max(0, Math.min(10, parseInt(level) || 0));
+    this.difficulty = lv;
+    this.save();
+  }
+  // 敌方伤害最终倍率：0级=0.5，每级+0.1，10级=1.5
+  getEnemyDamageMultiplier() {
+    return 0.5 + this.difficulty * 0.1;
+  }
+
+  // ---------- 神通法配置（必须 3 个） ----------
+  getTheurgyConfig() { return [...this.theurgyConfig]; }
+  setTheurgyConfig(ids) {
+    // 校验：必须是 THEURGY_POOL 中的 id，且恰好 3 个（去重后）
+    const validIds = new Set(THEURGY_POOL.map(t => t.id));
+    const unique = [...new Set((ids || []).filter(id => validIds.has(id)))];
+    if (unique.length !== 3) return { ok: false, msg: "必须选择 3 个不同的神通法" };
+    this.theurgyConfig = unique;
+    this.save();
+    return { ok: true, msg: "神通法配置已保存" };
+  }
+
   // ---------- 关卡进度 ----------
   clearStage(stageId) {
     if (!this.clearedStages.includes(stageId)) {
@@ -359,11 +334,6 @@ export class MetaState {
         this.money += item.amount;
         this.save();
         return { ok: true, msg: `获得 ◈${item.amount} 精魄` };
-      case "HAND_LIMIT":
-        this.money -= item.cost;
-        this.bonusHandLimit += item.amount;
-        this.save();
-        return { ok: true, msg: `手牌上限 +${item.amount}` };
       case "THEURGY_MAX":
         this.money -= item.cost;
         this.bonusTheurgyMax += item.amount;

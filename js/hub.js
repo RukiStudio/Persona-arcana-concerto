@@ -5,21 +5,10 @@ import {
   PERSONAS, ARCANA, ARCANA_LIST, STAGES, SHOP_ITEMS,
   ELEMENT_INFO, POWER_INFO, RANK_LABEL, RANK, AFFINITY, ELEMENT,
   STAT_UPGRADE_COSTS, STAT_INCREMENTS, EXP_CURVE, MAX_PLAYER_LEVEL,
-<<<<<<< HEAD
-<<<<<<< HEAD
-} from "./data.js?v=10";
-import { MetaState } from "./meta.js?v=10";
-import { getFusionResult, executeFusion, getAvailableFusions } from "./fusion.js?v=10";
-=======
-} from "./data.js?v=16";
-import { MetaState } from "./meta.js?v=16";
-import { getFusionResult, executeFusion, getAvailableFusions } from "./fusion.js?v=16";
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
+  THEURGY_POOL,
 } from "./data.js?v=18";
 import { MetaState } from "./meta.js?v=18";
 import { getFusionResult, executeFusion, getAvailableFusions } from "./fusion.js?v=18";
->>>>>>> feat-develop-game-plan-KtGMvY
 
 export class Hub {
   constructor(meta, onEnterStage) {
@@ -28,6 +17,8 @@ export class Hub {
     this.activeTab = "stages";
     this.fusionSelA = null;
     this.fusionSelB = null;
+    this.theurgyEditMode = false;   // 神通法编辑模式
+    this.theurgyDraft = [];         // 编辑中的临时选择
     this.bindTabs();
     this.render();
   }
@@ -77,18 +68,6 @@ export class Hub {
             const cleared = this.meta.isStageCleared(s.id);
             const next = i === this.meta.getNextStage();
             const locked = i > 0 && !this.meta.isStageCleared(STAGES[i-1].id);
-<<<<<<< HEAD
-<<<<<<< HEAD
-            return `
-              <div class="stage-card ${cleared ? "cleared" : ""} ${locked ? "locked" : ""} ${next ? "next" : ""}"
-                   data-idx="${i}">
-                <div class="stage-header">
-                  <span class="stage-id">CH.${s.id}</span>
-                  ${cleared ? '<span class="stage-cleared-tag">✓ CLEAR</span>' : ""}
-                  ${locked ? '<span class="stage-locked-tag">🔒 LOCKED</span>' : ""}
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
             const isTut = s.isTutorial;
             return `
               <div class="stage-card ${cleared ? "cleared" : ""} ${locked ? "locked" : ""} ${next ? "next" : ""} ${isTut ? "tutorial" : ""}"
@@ -98,10 +77,6 @@ export class Hub {
                   ${cleared ? '<span class="stage-cleared-tag">✓ CLEAR</span>' : ""}
                   ${locked ? '<span class="stage-locked-tag">🔒 LOCKED</span>' : ""}
                   ${isTut && !cleared ? '<span class="stage-tut-tag">📚 推荐</span>' : ""}
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
                 </div>
                 <div class="stage-name">${s.name}</div>
                 <div class="stage-info">
@@ -112,15 +87,7 @@ export class Hub {
                   <span>EXP ${s.reward.exp}</span>
                   <span>◈${s.reward.money}</span>
                 </div>
-<<<<<<< HEAD
-<<<<<<< HEAD
-                ${!locked ? `<button class="cut-btn confirm stage-enter-btn" data-idx="${i}">出 击</button>` : ""}
-=======
                 ${!locked ? `<button class="cut-btn confirm stage-enter-btn" data-idx="${i}">${isTut ? "开始教学" : "出 击"}</button>` : ""}
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
-                ${!locked ? `<button class="cut-btn confirm stage-enter-btn" data-idx="${i}">${isTut ? "开始教学" : "出 击"}</button>` : ""}
->>>>>>> feat-develop-game-plan-KtGMvY
               </div>
             `;
           }).join("")}
@@ -329,8 +296,11 @@ export class Hub {
 
   // ==================== 属性强化 ====================
   renderStats(container) {
-    const stats = ["attack", "maxHp", "critRate", "maxReversed", "theurgyMax"];
-    const labels = { attack: "攻击力", maxHp: "最大HP", critRate: "暴击率", maxReversed: "逆位上限", theurgyMax: "神通法次数" };
+    const stats = ["attack", "maxHp", "critRate", "maxReversed", "theurgyMax", "handLimit"];
+    const labels = { attack: "攻击力", maxHp: "最大HP", critRate: "暴击率", maxReversed: "逆位上限", theurgyMax: "神通法次数", handLimit: "手牌上限" };
+    const diff = this.meta.getDifficulty();
+    const diffMult = this.meta.getEnemyDamageMultiplier();
+    const theurgyConfig = this.meta.getTheurgyConfig();
     const html = `
       <div class="hub-section">
         <h2 class="hub-section-title">属性强化 · 可用属性点: ${this.meta.statPoints} SP</h2>
@@ -354,14 +324,130 @@ export class Hub {
           <p>每升一级获得 ${3} 属性点。当前等级 Lv.${this.meta.playerLevel}/${MAX_PLAYER_LEVEL}。</p>
         </div>
       </div>
+
+      <div class="hub-section">
+        <h2 class="hub-section-title">难度设置 · 敌方伤害倍率</h2>
+        <p class="hub-desc">调整敌方攻击力倍率（最终乘算）。0级=受伤×0.5，每级+0.1，最高10级=×1.5。可随时更改。</p>
+        <div class="difficulty-selector">
+          <div class="difficulty-display">
+            <span class="diff-label">当前难度:</span>
+            <span class="diff-value">Lv.${diff}</span>
+            <span class="diff-mult">（受伤 ×${diffMult.toFixed(1)}）</span>
+          </div>
+          <div class="difficulty-buttons">
+            ${Array.from({length: 11}, (_, i) => `
+              <button class="cut-btn diff-btn ${i === diff ? "confirm active" : ""}" data-diff="${i}">${i}</button>
+            `).join("")}
+          </div>
+        </div>
+      </div>
+
+      <div class="hub-section">
+        <div class="theurgy-config-header">
+          <h2 class="hub-section-title">神通法配置（必须选满 3 个）</h2>
+          ${this.theurgyEditMode
+            ? `<button class="cut-btn confirm" id="theurgy-save-btn">保存</button>
+               <button class="cut-btn" id="theurgy-cancel-btn">取消</button>`
+            : `<button class="cut-btn" id="theurgy-edit-btn">编辑</button>`
+          }
+        </div>
+        <p class="hub-desc">从下方池中选择 3 个神通法，战斗中神通法槽满时从这 3 个里随机抽取。${this.theurgyEditMode ? '<span class="warn">（编辑中：点击卡片选择/取消，最多 3 个）</span>' : ''}</p>
+        <div class="theurgy-config-grid ${this.theurgyEditMode ? 'editing' : ''}">
+          ${THEURGY_POOL.map(t => {
+            const selList = this.theurgyEditMode ? this.theurgyDraft : theurgyConfig;
+            const selected = selList.includes(t.id);
+            return `
+              <div class="theurgy-card ${selected ? "selected" : ""}" data-theurgy-id="${t.id}">
+                <div class="theurgy-icon">${t.icon}</div>
+                <div class="theurgy-name">${t.name}</div>
+                <div class="theurgy-desc">${t.desc}</div>
+                <div class="theurgy-skill">${ELEMENT_INFO[t.skill.element]?.icon ?? ""} ${t.skill.element} · ${POWER_INFO[t.skill.power]?.label ?? ""}</div>
+                ${selected ? '<div class="theurgy-sel-tag">已选</div>' : '<div class="theurgy-sel-tag dim">未选</div>'}
+              </div>
+            `;
+          }).join("")}
+        </div>
+        <div class="theurgy-config-status">
+          已选 ${(this.theurgyEditMode ? this.theurgyDraft : theurgyConfig).length}/3
+          ${(this.theurgyEditMode ? this.theurgyDraft : theurgyConfig).length === 3
+            ? '<span class="ok">✓ 配置完整</span>'
+            : '<span class="warn">⚠ 必须选满 3 个</span>'}
+        </div>
+      </div>
     `;
     container.innerHTML = html;
+
+    // 属性升级按钮
     container.querySelectorAll("[data-stat]").forEach(btn => {
       btn.onclick = () => {
         this.meta.upgradeStat(btn.dataset.stat);
         this.render();
       };
     });
+
+    // 难度按钮
+    container.querySelectorAll(".diff-btn").forEach(btn => {
+      btn.onclick = () => {
+        this.meta.setDifficulty(btn.dataset.diff);
+        this.showToast(`难度已设为 Lv.${btn.dataset.diff}`);
+        this.render();
+      };
+    });
+
+    // 神通法：编辑/保存/取消按钮
+    const editBtn = container.querySelector("#theurgy-edit-btn");
+    if (editBtn) {
+      editBtn.onclick = () => {
+        this.theurgyDraft = [...this.meta.getTheurgyConfig()];
+        this.theurgyEditMode = true;
+        this.render();
+      };
+    }
+    const saveBtn = container.querySelector("#theurgy-save-btn");
+    if (saveBtn) {
+      saveBtn.onclick = () => {
+        if (this.theurgyDraft.length !== 3) {
+          this.showToast("必须选满 3 个神通法才能保存", true);
+          return;
+        }
+        const r = this.meta.setTheurgyConfig(this.theurgyDraft);
+        if (r.ok) {
+          this.showToast(r.msg);
+          this.theurgyEditMode = false;
+          this.theurgyDraft = [];
+          this.render();
+        } else {
+          this.showToast(r.msg, true);
+        }
+      };
+    }
+    const cancelBtn = container.querySelector("#theurgy-cancel-btn");
+    if (cancelBtn) {
+      cancelBtn.onclick = () => {
+        this.theurgyEditMode = false;
+        this.theurgyDraft = [];
+        this.render();
+      };
+    }
+
+    // 神通法卡片：仅编辑模式下可点击
+    if (this.theurgyEditMode) {
+      container.querySelectorAll(".theurgy-card").forEach(card => {
+        card.onclick = () => {
+          const id = card.dataset.theurgyId;
+          if (this.theurgyDraft.includes(id)) {
+            this.theurgyDraft = this.theurgyDraft.filter(x => x !== id);
+          } else {
+            if (this.theurgyDraft.length >= 3) {
+              this.showToast("最多只能选择 3 个神通法", true);
+              return;
+            }
+            this.theurgyDraft = [...this.theurgyDraft, id];
+          }
+          this.render();
+        };
+      });
+    }
   }
 
   // ==================== 阵营选择 + 阵营特性升级 ====================

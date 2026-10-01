@@ -1,29 +1,11 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-﻿// ============================================================
-=======
 // ============================================================
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
-// ============================================================
->>>>>>> feat-develop-game-plan-KtGMvY
 // UI 渲染与交互
 // ============================================================
 import {
   ELEMENT, ELEMENT_INFO, POWER_INFO, RANK_LABEL, CARD_TYPE, AFFINITY,
   ENVIRONMENT_INFO,
-<<<<<<< HEAD
-<<<<<<< HEAD
-} from "./data.js?v=10";
-import { getActiveSkill, calcBaseDamage } from "./core.js?v=10";
-=======
-} from "./data.js?v=16";
-import { getActiveSkill, calcBaseDamage } from "./core.js?v=16";
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
 } from "./data.js?v=18";
 import { getActiveSkill, calcBaseDamage } from "./core.js?v=18";
->>>>>>> feat-develop-game-plan-KtGMvY
 
 export class UI {
   constructor(game, onReturnHub) {
@@ -41,30 +23,18 @@ export class UI {
       case "enemyHit": this.onEnemyHit(data); break;
       case "playerHurt": this.onPlayerHurt(data); break;
       case "playerHeal": this.onPlayerHeal(data); break;
-      case "battleEnd": this.showOverlay(data.victory); break;
+      case "battleEnd": this.showOverlay(data); break;
       case "enemyAttack": this.onEnemyAttack(data); break;
       case "enemyAct": break;
       case "waveStart": this.onWaveStart(data); break;
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-      case "tutorial": this.onTutorial(data); break;
-      case "enemyDeath": this.onEnemyDeath(data); break;
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
       case "tutorial": this.onTutorial(data); break;
       case "enemyDeath": this.onEnemyDeath(data); break;
       case "attackCardCreated": this.onAttackCardCreated(data); break;
       case "attackCardUsed": this.onAttackCardUsed(data); break;
->>>>>>> feat-develop-game-plan-KtGMvY
     }
     this.render();
   }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
   // 攻击牌生成：在手牌区播放红色脉冲特效
   onAttackCardCreated(data) {
     // render 会重建手牌，新攻击牌通过 .type-ATTACK.card-enter 触发生成动画
@@ -85,7 +55,6 @@ export class UI {
     setTimeout(() => document.body.classList.remove("attack-used-flash"), 520);
   }
 
->>>>>>> feat-develop-game-plan-KtGMvY
   // 敌人被击杀动画：克隆敌人卡片到独立浮层播放动画，避免被 render 覆盖
   onEnemyDeath(data) {
     const cardEl = document.querySelector(`.enemy-card[data-id="${data.enemy.id}"]`);
@@ -114,15 +83,6 @@ export class UI {
   // 教程引导：根据 step 显示气泡提示
   onTutorial(data) {
     const tips = {
-<<<<<<< HEAD
-      1: { title: "① 构 筑 卡 牌", body: "★ 构筑规则：将人格面具卡拖入下方 5 个构筑槽，\n合成更强大的技能（按总力度×等级计算伤害）。\n\n现在请将「软泥怪」和「小宝剑」拖入构筑槽", target: "#compose-slots" },
-      2: { title: "② 确 认 构 筑", body: "卡牌已入构筑槽！点击「CONFIRM」释放合成技能攻击敌人。\n★ 注意敌人属性相性（受对应属性伤害后才会揭示）", target: "#btn-confirm" },
-      3: { title: "③ 抽 取 卡 牌", body: "已造成伤害！现在点击「DRAW」抽一张牌。\n★ 抽到的卡牌将决定下一步策略", target: "#btn-draw" },
-      4: { title: "④ 翻 转 俄 耳 甫 斯", body: "★ 你抽到了俄耳甫斯！其逆位技能是「Agi（火焰）」\n点击俄耳甫斯选中后，按「FLIP」按钮翻转为逆位\n★ 敌人有火焰弱点（▼FIRE），逆位俄耳甫斯可造成双倍伤害并使其倒地", target: "#btn-flip" },
-      5: { title: "⑤ 打 出 俄 耳 甫 斯", body: "双击逆位的俄耳甫斯，直接释放其火焰技能！\n★ 弱点命中将显示「WEAK!」并使敌人倒地\n★ 全部敌人倒地后可发动总攻击", target: "#hand-area" },
-      6: { title: "⑥ 总 攻 击", body: "敌人已倒地！双击手牌中的「总攻击」卡，\n对全体敌人造成超大伤害！\n★ 总攻击有回合冷却，使用后解除倒地状态", target: "#hand-area" },
-      7: { title: "⑦ 战 斗 胜 利", body: "击败所有敌人即可获胜！\n返回天鹅绒房间查看局外养成系统……", target: null },
-=======
       1: { title: "① 构 筑 卡 牌", body: "★ 构筑规则：将人格面具卡拖入下方 5 个构筑槽，\n合成更强的技能（按总力度×等级计算伤害）。\n\n现在请将「软泥怪」和「小宝剑」拖入构筑槽", target: "#compose-slots" },
       2: { title: "② 生 成 攻 击 牌", body: "卡牌已入构筑槽！\n点击「CONFIRM」（或按 空格 键），\n构筑牌将被消耗，生成一张红色的「攻击牌」加入手牌。\n★ 攻击牌可双击直接释放，造成对应的属性伤害", target: "#btn-confirm" },
       3: { title: "③ 释 放 攻 击 牌", body: "攻击牌已生成！\n双击手牌中红色边框的「攻击牌」，\n立即对敌人释放合成技能造成伤害。\n★ 攻击牌每回合结束自动消失，请及时使用", target: "#hand-area" },
@@ -131,7 +91,6 @@ export class UI {
       6: { title: "⑥ 打 出 俄 耳 甫 斯", body: "双击逆位的俄耳甫斯，直接释放其火焰技能！\n★ 弱点命中将显示「WEAK!」并使敌人倒地\n★ 全部敌人倒地后可发动总攻击", target: "#hand-area" },
       7: { title: "⑦ 总 攻 击", body: "敌人已倒地！双击手牌中的「总攻击」卡，\n对全体敌人造成超大伤害！\n★ 总攻击有回合冷却，使用后解除倒地状态", target: "#hand-area" },
       8: { title: "⑧ 战 斗 胜 利", body: "击败所有敌人即可获胜！\n返回天鹅绒房间查看局外养成系统……", target: null },
->>>>>>> feat-develop-game-plan-KtGMvY
     };
     const tip = tips[data.step];
     if (!tip) { this.hideTutorialTip(); return; }
@@ -169,10 +128,6 @@ export class UI {
     document.querySelectorAll(".tutorial-highlight").forEach(n => n.classList.remove("tutorial-highlight"));
   }
 
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
   // 敌人攻击动画：突进 + 属性色屏闪
   onEnemyAttack(data) {
     const { enemy, skill, heal } = data;
@@ -196,12 +151,6 @@ export class UI {
   }
 
   onWaveStart(data) {
-<<<<<<< HEAD
-<<<<<<< HEAD
-    this.addLog(`第 ${data.waveIndex + 1}/${data.total} 波来袭！`, "dmg");
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     this.addLog(`▶ 新的暗影将你包围了！（第 ${data.waveIndex + 1}/${data.total} 波）`, "dmg");
     this.showFlashText("新的暗影将你包围了！", "var(--c-red)", 1600);
   }
@@ -222,10 +171,6 @@ export class UI {
     el.classList.add("show");
     clearTimeout(this._flashTimer);
     this._flashTimer = setTimeout(() => el.classList.remove("show"), duration);
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
   }
 
   bindStatic() {
@@ -240,8 +185,6 @@ export class UI {
       if (this.onReturnHub) this.onReturnHub();
     };
 
-<<<<<<< HEAD
-=======
     // 空格键：快速确认构筑（生成攻击牌）
     document.addEventListener("keydown", (e) => {
       if (e.code !== "Space") return;
@@ -254,7 +197,6 @@ export class UI {
       this.game.confirmCompose();
     });
 
->>>>>>> feat-develop-game-plan-KtGMvY
     // 构建 5 个构筑槽，并设为拖放目标
     const slotsEl = document.getElementById("compose-slots");
     slotsEl.innerHTML = "";
@@ -323,6 +265,11 @@ export class UI {
     document.getElementById("cup-stack").textContent = g.player.cupStack;
     document.getElementById("flip-remain").textContent = `${g.getReversedCount()}/${g.player.maxReversed}`;
 
+    // 主角倒地状态
+    document.getElementById("game-root").classList.toggle("player-knocked-down", !!g.player.is_knocked_down);
+    // 主角相性徽章
+    this.renderPlayerAffinities();
+
     const canAct = g.state === "PLAYER_ACTION";
     document.getElementById("btn-end").disabled = !canAct;
     document.getElementById("btn-confirm").disabled = !canAct || g.composeSlots.length === 0;
@@ -332,12 +279,6 @@ export class UI {
     document.getElementById("btn-upgrade").disabled = !canAct;
     document.getElementById("btn-draw").textContent = `DRAW ¥${g.player.drawCost}`;
     const upCosts = [600, 1200, 2400, 4800];
-<<<<<<< HEAD
-<<<<<<< HEAD
-    document.getElementById("btn-upgrade").textContent = g.deckLevel >= 5 ? "MAX" : `UPGRADE ¥${upCosts[g.deckLevel - 1]}`;
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     const baseCost = upCosts[g.deckLevel - 1] || 9999;
     // 计算回合折扣（与 game.js 逻辑一致）
     const discountTurns = Math.min(g.turn - g.lastUpgradeTurn - 1, 3);
@@ -345,17 +286,11 @@ export class UI {
     const cost = Math.round(baseCost * (1 - discount));
     const discountTag = discount > 0 ? ` (-${Math.round(discount * 100)}%)` : "";
     document.getElementById("btn-upgrade").textContent = g.deckLevel >= 5 ? "MAX" : `UPGRADE ¥${cost}${discountTag}`;
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
 
     this.renderEnemies();
     this.renderComposeSlots();
     this.renderResult();
     this.renderHand();
-<<<<<<< HEAD
-=======
 
     // 背景特效：持有攻击牌+总攻击牌时变亮；神通法准备好时特效
     const root = document.getElementById("game-root");
@@ -364,7 +299,6 @@ export class UI {
     const hasTheurgy = g.hand.some(c => c.type === CARD_TYPE.THEURGY);
     root.classList.toggle("has-attack-combo", hasAttack && hasAllOut);
     root.classList.toggle("theurgy-ready", hasTheurgy);
->>>>>>> feat-develop-game-plan-KtGMvY
   }
 
   // 渲染局内减益环境徽章
@@ -377,6 +311,21 @@ export class UI {
       const info = ENVIRONMENT_INFO[key];
       if (!info) return "";
       return `<span class="env-badge" title="${info.desc}">${info.icon} ${info.name}</span>`;
+    }).join("");
+  }
+
+  // 渲染主角相性徽章（弱点/耐性）
+  renderPlayerAffinities() {
+    const el = document.getElementById("player-affinities");
+    if (!el) return;
+    const affs = this.game.player.affinities || {};
+    const entries = Object.entries(affs).filter(([, v]) => v !== AFFINITY.NORMAL);
+    if (!entries.length) { el.innerHTML = '<span class="aff-hint">无特殊相性</span>'; return; }
+    el.innerHTML = entries.map(([el2, v]) => {
+      const info = ELEMENT_INFO[el2];
+      const cls = v === AFFINITY.WEAK ? "aff-WEAK" : v === AFFINITY.RESIST ? "aff-RESIST" : "aff-NULL";
+      const label = v === AFFINITY.WEAK ? "弱点" : v === AFFINITY.RESIST ? "耐性" : "无效";
+      return `<span class="player-aff-badge ${cls}" title="${info?.name || el2} ${label}">${info ? info.icon : ""}${label}</span>`;
     }).join("");
   }
 
@@ -394,23 +343,11 @@ export class UI {
       const intentIcon = e.intent ? (e.intent.element === "HEAL" || e.intent.element === "SUPPORT" ? "▲" : "▸") : "?";
       const intentName = e.intent ? `${e.intent.name} (${e.intent.range === "ALL" ? "ALL" : "SINGLE"})` : "UNKNOWN";
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-      // 相性角标
-      const affs = Object.entries(e.affinities)
-        .filter(([, v]) => v !== AFFINITY.NORMAL)
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
       // 相性角标：仅显示已揭示的属性（受对应属性伤害后才揭示；死亡后全部揭示）
       const revealed = e.revealedAffinities || new Set();
       const showAll = e.hp <= 0;
       const affs = Object.entries(e.affinities)
         .filter(([el, v]) => v !== AFFINITY.NORMAL && (showAll || revealed.has(el)))
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
         .map(([el, v]) => {
           const info = ELEMENT_INFO[el];
           return `<span class="aff-badge aff-${v}">${info ? info.icon : ""}${v}</span>`;
@@ -427,15 +364,7 @@ export class UI {
           <div class="enemy-hp-bar"><div class="enemy-hp-fill" style="width:${e.hp / e.maxHp * 100}%"></div></div>
           <span class="enemy-hp-text">${e.hp}/${e.maxHp}</span>
         </div>
-<<<<<<< HEAD
-<<<<<<< HEAD
-        <div class="affinity-row">${affs || '<span style="opacity:0.4;font-size:10px">无弱点</span>'}</div>
-=======
         <div class="affinity-row">${affs || '<span style="opacity:0.4;font-size:10px">未揭示</span>'}</div>
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
-        <div class="affinity-row">${affs || '<span style="opacity:0.4;font-size:10px">未揭示</span>'}</div>
->>>>>>> feat-develop-game-plan-KtGMvY
         <div class="enemy-intent">${intentIcon} ${intentName}</div>
       `;
       card.onclick = () => {
@@ -481,15 +410,10 @@ export class UI {
 
   renderResult() {
     const skill = this.game.getEffectiveComposeSkill();
-<<<<<<< HEAD
-    const el = document.getElementById("result-element");
-    const pw = document.getElementById("result-power");
-=======
     const panel = document.getElementById("result-panel");
     const el = document.getElementById("result-element");
     const pw = document.getElementById("result-power");
     panel.classList.toggle("attack-preview", !!skill);
->>>>>>> feat-develop-game-plan-KtGMvY
     if (skill) {
       const info = ELEMENT_INFO[skill.element];
       el.innerHTML = `<span class="el-${skill.element}">${info.icon} ${info.name} · ${skill.range}</span>`;
@@ -585,42 +509,24 @@ export class UI {
     const t = card.type;
     // 打出动画：克隆一张浮起消散（原元素会被 re-render 销毁）
     this.playCardFx(card);
-<<<<<<< HEAD
-    // 辅助卡（权杖/圣杯/星币/总攻击/神通法）双击直接使用
-=======
     // 辅助卡（权杖/圣杯/星币/总攻击/神通法/攻击牌）双击直接使用
->>>>>>> feat-develop-game-plan-KtGMvY
     if (t === CARD_TYPE.WAND || t === CARD_TYPE.CUP || t === CARD_TYPE.PENTACLE) {
       this.game.useMinorCard(card);
     } else if (t === CARD_TYPE.ALL_OUT) {
       this.game.useAllOut(card);
     } else if (t === CARD_TYPE.THEURGY) {
       this.game.useTheurgy(card);
-<<<<<<< HEAD
-    } else {
-      // 人格面具 / 宝剑：双击直接加入构筑槽
-<<<<<<< HEAD
-      this.game.addToCompose(card.id);
-=======
-      // 教程 step 5：双击逆位俄耳甫斯直接释放技能（火焰弱点）
-      if (this.game.isTutorial && this.game.tutorialStep === 5
-=======
     } else if (t === CARD_TYPE.ATTACK) {
       this.game.useAttackCard(card);
     } else {
       // 人格面具 / 宝剑：双击直接加入构筑槽
       // 教程 step 6：双击逆位俄耳甫斯直接释放技能（火焰弱点）
       if (this.game.isTutorial && this.game.tutorialStep === 6
->>>>>>> feat-develop-game-plan-KtGMvY
           && card.cardKey === "orpheus" && card.is_reversed) {
         this.game.usePersonaDirect(card);
       } else {
         this.game.addToCompose(card.id);
       }
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     }
   }
 
@@ -646,17 +552,8 @@ export class UI {
   buildCardEl(card, mini) {
     const el = document.createElement("div");
     el.className = `card type-${card.type}`;
-<<<<<<< HEAD
-<<<<<<< HEAD
-    if (card.type === CARD_TYPE.PERSONA && card.is_reversed) el.classList.add("reversed");
-=======
     const isReversed = card.type === CARD_TYPE.PERSONA && card.is_reversed;
     if (isReversed) el.classList.add("reversed");
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
-    const isReversed = card.type === CARD_TYPE.PERSONA && card.is_reversed;
-    if (isReversed) el.classList.add("reversed");
->>>>>>> feat-develop-game-plan-KtGMvY
     if (mini) el.classList.add("in-slot");
     el.dataset.id = card.id;
 
@@ -688,25 +585,14 @@ export class UI {
         </div>
       `;
     } else if (skill) {
-<<<<<<< HEAD
-      skillsHtml = `<div class="card-skill el-${skill.element}">${info.icon} ${skill.name} · ${skill.range === "ALL" ? "ALL" : "SGL"}</div>`;
-=======
       const sName = skill.name || `${info.name}攻击`;
       skillsHtml = `<div class="card-skill el-${skill.element}">${info.icon} ${sName} · ${skill.range === "ALL" ? "ALL" : "SGL"}</div>`;
->>>>>>> feat-develop-game-plan-KtGMvY
     }
 
     const orient = card.type === CARD_TYPE.PERSONA
       ? `<div class="card-orient ${card.is_reversed ? "reversed" : ""}">${card.is_reversed ? "▼ REVERSED" : "▲ UPRIGHT"}</div>`
       : "";
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-    el.innerHTML = `
-      ${rankLabel ? `<span class="card-rank rank-${rankLabel}">${rankLabel}</span>` : ""}
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     // 卡牌介绍 tooltip 内容
     let tooltipText = `${card.name}`;
     if (card.type === CARD_TYPE.PERSONA) {
@@ -722,11 +608,8 @@ export class UI {
       tooltipText += `\n总攻击：全体大伤害\n需敌人全部倒地后获得`;
     } else if (card.type === CARD_TYPE.THEURGY) {
       tooltipText += `\n神通法：强力一击\n神通法槽满后可用`;
-<<<<<<< HEAD
-=======
     } else if (card.type === CARD_TYPE.ATTACK) {
       tooltipText += `\n${info.name}属性 [${powerLabel}] ${skill.range === "ALL" ? "全体" : "单体"}\n攻击牌：双击直接释放伤害，每回合结束后消失`;
->>>>>>> feat-develop-game-plan-KtGMvY
     }
     el.title = tooltipText;
 
@@ -737,10 +620,6 @@ export class UI {
     el.innerHTML = `
       ${rankLabel ? `<span class="card-rank rank-${rankLabel}">${rankLabel}</span>` : ""}
       ${innerWrap}
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
       <div class="card-art">${card.icon}</div>
       <div class="card-divider"></div>
       <div class="card-name">${card.name}</div>
@@ -750,15 +629,8 @@ export class UI {
         <span>${card.type === CARD_TYPE.PERSONA ? "PERSONA" : card.type}</span>
       </div>
       ${orient}
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-      ${innerClose}
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
       ${innerClose}
       ${card.type === CARD_TYPE.ATTACK ? `<span class="attack-shockwave"></span>` : ""}
->>>>>>> feat-develop-game-plan-KtGMvY
     `;
     return el;
   }
@@ -771,21 +643,12 @@ export class UI {
     if (!cardEl) return;
     cardEl.classList.add("hit-flash");
     setTimeout(() => cardEl.classList.remove("hit-flash"), 300);
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     // 弱点命中弹窗
     if (affinity === AFFINITY.WEAK && dmg > 0) {
       this.showFlashText("WEAK!", "var(--c-gold)");
     } else if (crit && dmg > 0) {
       this.showFlashText("CRIT!", "var(--c-gold)");
     }
-<<<<<<< HEAD
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
->>>>>>> feat-develop-game-plan-KtGMvY
     if (dmg > 0) {
       let color = "var(--c-red)";
       if (crit) color = "var(--c-gold)";
@@ -837,23 +700,23 @@ export class UI {
     while (log.children.length > 40) log.removeChild(log.firstChild);
   }
 
-  showOverlay(victory) {
+  showOverlay(data) {
+    const { victory, reward } = data;
     const ov = document.getElementById("overlay");
     ov.classList.remove("hidden");
     const content = ov.querySelector(".overlay-content");
     content.classList.toggle("defeat", !victory);
     document.getElementById("overlay-title").textContent = victory ? "VICTORY" : "DEFEAT";
-    document.getElementById("overlay-desc").textContent = victory
-      ? "所有暗影已被驱散，返回天鹅绒房间查看养成。" : "你倒下了……";
+    let desc = victory
+      ? "所有暗影已被驱散，返回天鹅绒房间查看养成。"
+      : "你倒下了……";
+    // 胜利时显示奖励
+    if (victory && reward) {
+      desc = `获得奖励：EXP +${reward.exp}　◈ +${reward.money} 精魄`;
+    }
+    document.getElementById("overlay-desc").textContent = desc;
     document.getElementById("overlay-btn").textContent = victory ? "返回房间" : "重试";
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
     this.hideTutorialTip();
->>>>>>> feat-develop-game-plan-KtGMvY
-=======
-    this.hideTutorialTip();
->>>>>>> feat-develop-game-plan-KtGMvY
   }
 
   onOverlayContinue() {
