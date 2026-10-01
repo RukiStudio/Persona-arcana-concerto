@@ -1,5 +1,9 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 ﻿// ============================================================
+=======
+// ============================================================
+>>>>>>> feat-develop-game-plan-KtGMvY
 =======
 // ============================================================
 >>>>>>> feat-develop-game-plan-KtGMvY
@@ -9,9 +13,13 @@ import {
   ELEMENT, POWER, POWER_MULTIPLIER, AFFINITY, AFFINITY_MULTIPLIER,
   RANGE, CARD_TYPE,
 <<<<<<< HEAD
+<<<<<<< HEAD
 } from "./data.js?v=10";
 =======
 } from "./data.js?v=16";
+>>>>>>> feat-develop-game-plan-KtGMvY
+=======
+} from "./data.js?v=18";
 >>>>>>> feat-develop-game-plan-KtGMvY
 
 /**
@@ -50,7 +58,11 @@ export function composeSkill(cards) {
     if (skill.element === ELEMENT.ALMIGHTY) {
       result.element = ELEMENT.ALMIGHTY;
 <<<<<<< HEAD
+<<<<<<< HEAD
       result.power = Math.min(result.power + skill.power, POWER.XH);
+=======
+      result.power = Math.min(result.power + skill.power, POWER.UL);
+>>>>>>> feat-develop-game-plan-KtGMvY
 =======
       result.power = Math.min(result.power + skill.power, POWER.UL);
 >>>>>>> feat-develop-game-plan-KtGMvY
@@ -63,7 +75,11 @@ export function composeSkill(cards) {
       result.element = skill.element;
     }
 <<<<<<< HEAD
+<<<<<<< HEAD
     result.power = Math.min(result.power + skill.power, POWER.XH);
+=======
+    result.power = Math.min(result.power + skill.power, POWER.UL);
+>>>>>>> feat-develop-game-plan-KtGMvY
 =======
     result.power = Math.min(result.power + skill.power, POWER.UL);
 >>>>>>> feat-develop-game-plan-KtGMvY

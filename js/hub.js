@@ -6,6 +6,7 @@ import {
   ELEMENT_INFO, POWER_INFO, RANK_LABEL, RANK, AFFINITY, ELEMENT,
   STAT_UPGRADE_COSTS, STAT_INCREMENTS, EXP_CURVE, MAX_PLAYER_LEVEL,
 <<<<<<< HEAD
+<<<<<<< HEAD
 } from "./data.js?v=10";
 import { MetaState } from "./meta.js?v=10";
 import { getFusionResult, executeFusion, getAvailableFusions } from "./fusion.js?v=10";
@@ -13,6 +14,11 @@ import { getFusionResult, executeFusion, getAvailableFusions } from "./fusion.js
 } from "./data.js?v=16";
 import { MetaState } from "./meta.js?v=16";
 import { getFusionResult, executeFusion, getAvailableFusions } from "./fusion.js?v=16";
+>>>>>>> feat-develop-game-plan-KtGMvY
+=======
+} from "./data.js?v=18";
+import { MetaState } from "./meta.js?v=18";
+import { getFusionResult, executeFusion, getAvailableFusions } from "./fusion.js?v=18";
 >>>>>>> feat-develop-game-plan-KtGMvY
 
 export class Hub {
@@ -72,6 +78,7 @@ export class Hub {
             const next = i === this.meta.getNextStage();
             const locked = i > 0 && !this.meta.isStageCleared(STAGES[i-1].id);
 <<<<<<< HEAD
+<<<<<<< HEAD
             return `
               <div class="stage-card ${cleared ? "cleared" : ""} ${locked ? "locked" : ""} ${next ? "next" : ""}"
                    data-idx="${i}">
@@ -80,6 +87,8 @@ export class Hub {
                   ${cleared ? '<span class="stage-cleared-tag">✓ CLEAR</span>' : ""}
                   ${locked ? '<span class="stage-locked-tag">🔒 LOCKED</span>' : ""}
 =======
+=======
+>>>>>>> feat-develop-game-plan-KtGMvY
             const isTut = s.isTutorial;
             return `
               <div class="stage-card ${cleared ? "cleared" : ""} ${locked ? "locked" : ""} ${next ? "next" : ""} ${isTut ? "tutorial" : ""}"
@@ -89,6 +98,9 @@ export class Hub {
                   ${cleared ? '<span class="stage-cleared-tag">✓ CLEAR</span>' : ""}
                   ${locked ? '<span class="stage-locked-tag">🔒 LOCKED</span>' : ""}
                   ${isTut && !cleared ? '<span class="stage-tut-tag">📚 推荐</span>' : ""}
+<<<<<<< HEAD
+>>>>>>> feat-develop-game-plan-KtGMvY
+=======
 >>>>>>> feat-develop-game-plan-KtGMvY
                 </div>
                 <div class="stage-name">${s.name}</div>
@@ -101,7 +113,11 @@ export class Hub {
                   <span>◈${s.reward.money}</span>
                 </div>
 <<<<<<< HEAD
+<<<<<<< HEAD
                 ${!locked ? `<button class="cut-btn confirm stage-enter-btn" data-idx="${i}">出 击</button>` : ""}
+=======
+                ${!locked ? `<button class="cut-btn confirm stage-enter-btn" data-idx="${i}">${isTut ? "开始教学" : "出 击"}</button>` : ""}
+>>>>>>> feat-develop-game-plan-KtGMvY
 =======
                 ${!locked ? `<button class="cut-btn confirm stage-enter-btn" data-idx="${i}">${isTut ? "开始教学" : "出 击"}</button>` : ""}
 >>>>>>> feat-develop-game-plan-KtGMvY

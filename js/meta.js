@@ -7,6 +7,7 @@ import {
   STAT_UPGRADE_COSTS, STAT_INCREMENTS,
   STARTING_PERSONAS, RANK,
 <<<<<<< HEAD
+<<<<<<< HEAD
 } from "./data.js?v=10";
 
 const SAVE_KEY = "persona_concerto_save_v1";
@@ -25,6 +26,9 @@ export class MetaState {
     } catch (e) { /* ignore */ }
 =======
 } from "./data.js?v=16";
+=======
+} from "./data.js?v=18";
+>>>>>>> feat-develop-game-plan-KtGMvY
 
 const SAVE_KEY = "persona_concerto_save_v1";        // 旧版单存档（迁移用）
 const PROFILES_KEY = "persona_concerto_profiles_v1"; // 多玩家档案（每个玩家独立存档）
@@ -87,6 +91,9 @@ export class MetaState {
   load() {
     const profiles = readProfiles();
     const saved = profiles[this.profileName] || null;
+<<<<<<< HEAD
+>>>>>>> feat-develop-game-plan-KtGMvY
+=======
 >>>>>>> feat-develop-game-plan-KtGMvY
 
     this.playerLevel = saved?.playerLevel ?? 1;
@@ -124,6 +131,7 @@ export class MetaState {
       arcanaLevels: this.arcanaLevels,
     };
 <<<<<<< HEAD
+<<<<<<< HEAD
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
     } catch (e) { /* ignore */ }
@@ -132,6 +140,8 @@ export class MetaState {
   reset() {
     localStorage.removeItem(SAVE_KEY);
 =======
+=======
+>>>>>>> feat-develop-game-plan-KtGMvY
     const profiles = readProfiles();
     profiles[this.profileName] = data;
     writeProfiles(profiles);
@@ -141,6 +151,9 @@ export class MetaState {
     const profiles = readProfiles();
     profiles[this.profileName] = null;
     writeProfiles(profiles);
+<<<<<<< HEAD
+>>>>>>> feat-develop-game-plan-KtGMvY
+=======
 >>>>>>> feat-develop-game-plan-KtGMvY
     this.load();
   }
@@ -187,8 +200,13 @@ export class MetaState {
     // 难度压缩后的基础值
     if (stat === "critRate") return { base: "3%", bonus: `+${(lvl * inc * 100).toFixed(0)}%`, total: `${((0.03 + lvl * inc) * 100).toFixed(0)}%` };
 <<<<<<< HEAD
+<<<<<<< HEAD
     if (stat === "maxHp") return { base: "600", bonus: `+${lvl * inc}`, total: String(600 + lvl * inc) };
     if (stat === "attack") return { base: "90", bonus: `+${lvl * inc}`, total: String(90 + lvl * inc) };
+=======
+    if (stat === "maxHp") return { base: "300", bonus: `+${lvl * inc}`, total: String(300 + lvl * inc) };
+    if (stat === "attack") return { base: "18", bonus: `+${lvl * inc}`, total: String(18 + lvl * inc) };
+>>>>>>> feat-develop-game-plan-KtGMvY
 =======
     if (stat === "maxHp") return { base: "300", bonus: `+${lvl * inc}`, total: String(300 + lvl * inc) };
     if (stat === "attack") return { base: "18", bonus: `+${lvl * inc}`, total: String(18 + lvl * inc) };
@@ -204,8 +222,13 @@ export class MetaState {
     const arcana = ARCANA[this.arcanaId];
     const arcanaLv = this.getArcanaLevel(this.arcanaId);
 <<<<<<< HEAD
+<<<<<<< HEAD
     let attack = 90 + (s.attack ?? 0) * STAT_INCREMENTS.attack;
     let maxHp = 600 + (s.maxHp ?? 0) * STAT_INCREMENTS.maxHp;
+=======
+    let attack = 18 + (s.attack ?? 0) * STAT_INCREMENTS.attack;
+  let maxHp = 300 + (s.maxHp ?? 0) * STAT_INCREMENTS.maxHp;
+>>>>>>> feat-develop-game-plan-KtGMvY
 =======
     let attack = 18 + (s.attack ?? 0) * STAT_INCREMENTS.attack;
   let maxHp = 300 + (s.maxHp ?? 0) * STAT_INCREMENTS.maxHp;
