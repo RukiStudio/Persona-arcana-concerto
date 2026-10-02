@@ -2,22 +2,39 @@
 // 游戏入口：玩家档案选择、初始化、Hub ↔ 战斗切换
 // ============================================================
 import { Game } from "./game.js?v=18";
-import { UI } from "./ui.js?v=18";
+import { UI } from "./ui.js?v=20";
 import { MetaState } from "./meta.js?v=18";
-import { Hub } from "./hub.js?v=18";
+import { Hub } from "./hub.js?v=19";
+import { startDuel } from "./duel.js?v=19";
 import { loadStagesData } from "./data.js?v=18";
 
-// 等比缩放适配
+// 等比缩放适配：战斗界面铺满自适应放大，Hub 界面移动端缩小
 function fitScreen() {
-  const root = document.getElementById("game-root");
   const scaleX = window.innerWidth / 1920;
   const scaleY = window.innerHeight / 1080;
   const scale = Math.min(scaleX, scaleY);
   const offsetX = (window.innerWidth - 1920 * scale) / 2;
   const offsetY = (window.innerHeight - 1080 * scale) / 2;
-  root.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+  // 战斗界面：铺满屏幕（自适应放大）
+  const gameRoot = document.getElementById("game-root");
+  gameRoot.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+
+  // Hub 界面：移动端（触屏）缩小至 65%，其余界面不变
+  const isMobile = window.matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
+  const hubEl = document.getElementById("hub-screen");
+  hubEl.style.transform = isMobile ? "scale(0.65)" : "";
 }
 window.addEventListener("resize", fitScreen);
+
+// 移动端自动全屏：首次触摸/点击触发（浏览器要求必须由用户手势触发）
+function tryAutoFullscreen() {
+  const isMobile = window.matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
+  if (!isMobile || document.fullscreenElement) return;
+  const el = document.documentElement;
+  if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+}
+window.addEventListener("touchstart", tryAutoFullscreen, { once: true });
+window.addEventListener("click", tryAutoFullscreen, { once: true });
 
 // 全局状态
 let meta = null;
@@ -80,7 +97,7 @@ function enterProfile(name) {
   profileScreen.classList.add("hidden");
   document.getElementById("hub-screen").classList.remove("hidden");
   document.getElementById("hub-profile-name").textContent = name;
-  hub = new Hub(meta, (stageIndex) => showBattle(stageIndex));
+  hub = new Hub(meta, (stageIndex) => showBattle(stageIndex), () => showDuel());
   showHub();
 }
 
@@ -93,6 +110,7 @@ document.getElementById("btn-switch-profile").onclick = () => {
 
 // ---------- Hub / 战斗切换 ----------
 function showHub() {
+  fitScreen();
   document.getElementById("hub-screen").classList.remove("hidden");
   document.getElementById("game-root").classList.add("hidden");
   if (hub) hub.render();
@@ -137,6 +155,13 @@ function showBattle(stageIndex) {
   window.__game = game;
   window.__ui = ui;
   game.startStage(stageIndex);
+}
+
+// 进入 AI 对战（本地三局制）
+function showDuel() {
+  document.getElementById("hub-screen").classList.add("hidden");
+  document.getElementById("game-root").classList.add("hidden");
+  startDuel(meta, showHub);
 }
 
 // 启动：先加载关卡数据，再显示档案选择界面

@@ -11,7 +11,7 @@ import {
 import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=18";
 
 // 卡牌工厂
-function makePersonaCard(key) {
+export function makePersonaCard(key) {
   const p = PERSONAS[key];
   return {
     id: nextId("per"),
@@ -26,15 +26,15 @@ function makePersonaCard(key) {
     skill_reversed: p.reversed,
   };
 }
-function makeMinorCard(key) {
+export function makeMinorCard(key) {
   const m = MINOR_CARDS[key];
   return { id: nextId("min"), cardKey: key, name: m.name, icon: m.icon, ...m };
 }
-function makeTheurgyCard(key) {
+export function makeTheurgyCard(key) {
   const t = PERSONAS[key];
   return { id: nextId("the"), type: CARD_TYPE.THEURGY, cardKey: key, name: t.name, icon: t.icon, skill: t.skill };
 }
-function makeAllOutCard(power) {
+export function makeAllOutCard(power) {
   return {
     id: nextId("aoa"),
     type: CARD_TYPE.ALL_OUT,
@@ -44,7 +44,7 @@ function makeAllOutCard(power) {
   };
 }
 // 构筑合成后产生的攻击牌：持有合成技能，双击直接释放
-function makeAttackCard(skill) {
+export function makeAttackCard(skill) {
   const info = ELEMENT_INFO[skill.element] || { name: "?", icon: "⚔" };
   const pinfo = POWER_INFO[skill.power] || { name: "?", label: "?" };
   return {

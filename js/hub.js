@@ -11,9 +11,10 @@ import { MetaState } from "./meta.js?v=18";
 import { getFusionResult, executeFusion, getAvailableFusions } from "./fusion.js?v=18";
 
 export class Hub {
-  constructor(meta, onEnterStage) {
+  constructor(meta, onEnterStage, onEnterDuel) {
     this.meta = meta;
     this.onEnterStage = onEnterStage; // callback(stageIndex)
+    this.onEnterDuel = onEnterDuel;   // callback() 进入 AI 对战
     this.activeTab = "stages";
     this.fusionSelA = null;
     this.fusionSelB = null;
@@ -60,7 +61,22 @@ export class Hub {
 
   // ==================== 关卡选择 ====================
   renderStages(container) {
+    const duelUnlocked = this.meta.isStageCleared(5);
     const html = `
+      <div class="hub-section">
+        <h2 class="hub-section-title">AI 对战 · 塔罗决斗</h2>
+        <div class="duel-entry-card">
+          <div class="duel-entry-info">
+            <div class="duel-entry-name">🃏 本地 AI 对战（三局制）</div>
+            <div class="duel-entry-desc">${duelUnlocked
+              ? "与 AI 各选 3 个阵营，三局两胜。阵营特性以基础等级生效，弱点击破出权杖并回资金。"
+              : "🔒 通关主线关卡 5（BOSS：死神降临）后解锁"}</div>
+          </div>
+          <button class="cut-btn confirm duel-enter-btn" ${duelUnlocked ? "" : "disabled"} data-duel="1">
+            ${duelUnlocked ? "进 入 对 战" : "未 解 锁"}
+          </button>
+        </div>
+      </div>
       <div class="hub-section">
         <h2 class="hub-section-title">选择出击关卡</h2>
         <div class="stage-grid">
@@ -100,6 +116,12 @@ export class Hub {
         e.stopPropagation();
         const idx = parseInt(btn.dataset.idx);
         this.onEnterStage(idx);
+      };
+    });
+    container.querySelectorAll(".duel-enter-btn").forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        if (this.onEnterDuel) this.onEnterDuel();
       };
     });
   }

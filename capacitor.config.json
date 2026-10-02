@@ -1,0 +1,8 @@
+{
+  "appId": "com.pac.ruki",
+  "appName": "P: AC",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": true
+  }
+}

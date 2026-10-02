@@ -713,6 +713,7 @@ body.attack-used-flash {
    ============================================================ */
 .hub-screen {
   position: fixed; inset: 0;
+  transform-origin: center;
   background:
     radial-gradient(ellipse at 30% 20%, rgba(26,42,108,0.6), transparent 60%),
     radial-gradient(ellipse at 70% 80%, rgba(139,0,255,0.15), transparent 60%),

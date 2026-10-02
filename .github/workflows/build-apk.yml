@@ -12,7 +12,7 @@ on:
       - 'js/**'
       - 'assets/**'
       - 'icons/app-icon.png'
-      - 'capacitor.config.ts'
+      - 'capacitor.config.json'
       - 'package.json'
       - 'scripts/**'
       - '.github/workflows/build-apk.yml'

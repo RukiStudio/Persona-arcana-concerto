@@ -6,6 +6,7 @@ import {
   ENVIRONMENT_INFO,
 } from "./data.js?v=18";
 import { getActiveSkill, calcBaseDamage } from "./core.js?v=18";
+import { playElementBurst } from "./vfx.js?v=2";
 
 export class UI {
   constructor(game, onReturnHub) {
@@ -16,6 +17,7 @@ export class UI {
     this._drag = null;               // 当前指针拖动状态
     this._lpTimer = null;            // 长按定时器
     this._suppressThisClick = false; // 拖动/长按后抑制下一次 click
+    this._flipCooldownUntil = 0;     // 长按翻面冷却截止时间戳，避免连续逆位
     this.bindStatic();
     game.on((type, data) => this.handleEvent(type, data));
   }
@@ -50,12 +52,10 @@ export class UI {
     }
   }
 
-  // 攻击牌使用：全屏红光闪烁
+  // 攻击牌使用：全屏属性颜色粒子特效
   onAttackCardUsed(data) {
-    document.body.classList.remove("attack-used-flash");
-    void document.body.offsetWidth;
-    document.body.classList.add("attack-used-flash");
-    setTimeout(() => document.body.classList.remove("attack-used-flash"), 520);
+    const skill = data && data.card && data.card.skill;
+    playElementBurst(skill ? skill.element : null);
   }
 
   // 敌人被击杀动画：克隆敌人卡片到独立浮层播放动画，避免被 render 覆盖
@@ -358,7 +358,8 @@ export class UI {
   }
 
   renderComposeSlots() {
-    const slots = document.querySelectorAll(".slot");
+    // 限定在主线构筑区内：AI 对战界面（#duel-screen）也使用 .slot 类名且常驻 DOM
+    const slots = document.querySelectorAll("#compose-slots .slot");
     const prevSlotIds = new Set((this._prevSlotIds || []));
     const curSlotIds = [];
     slots.forEach((slot, i) => {
@@ -505,11 +506,17 @@ export class UI {
       this._suppressThisClick = false;
       const pid = e.pointerId;
 
-      // 长按翻面（仅人格面具卡）
+      // 长按翻面（仅人格面具卡，带冷却避免连续逆位）
       clearTimeout(this._lpTimer);
       this._lpTimer = setTimeout(() => {
         this._suppressThisClick = true;
-        if (card.type === CARD_TYPE.PERSONA) game.flipCard(card.id);
+        if (card.type === CARD_TYPE.PERSONA) {
+          const now = Date.now();
+          if (now >= this._flipCooldownUntil) {
+            this._flipCooldownUntil = now + 800; // 800ms 内不再响应长按翻面
+            game.flipCard(card.id);
+          }
+        }
       }, 500);
 
       this._drag = { x: e.clientX, y: e.clientY, active: false, pid, inSlot };
@@ -528,8 +535,8 @@ export class UI {
       }
       if (d.active) {
         const under = document.elementFromPoint(e.clientX, e.clientY);
-        const slot = under && under.closest ? under.closest(".slot") : null;
-        document.querySelectorAll(".slot.drag-over").forEach(s => s.classList.remove("drag-over"));
+        const slot = under && under.closest ? under.closest("#compose-slots .slot") : null;
+        document.querySelectorAll("#compose-slots .slot.drag-over").forEach(s => s.classList.remove("drag-over"));
         if (slot) slot.classList.add("drag-over");
       }
     });
@@ -539,9 +546,9 @@ export class UI {
       clearTimeout(this._lpTimer);
       if (d && d.active && e.pointerId === d.pid) {
         el.classList.remove("dragging");
-        document.querySelectorAll(".slot.drag-over").forEach(s => s.classList.remove("drag-over"));
+        document.querySelectorAll("#compose-slots .slot.drag-over").forEach(s => s.classList.remove("drag-over"));
         const under = document.elementFromPoint(e.clientX, e.clientY);
-        const slot = under && under.closest ? under.closest(".slot") : null;
+        const slot = under && under.closest ? under.closest("#compose-slots .slot") : null;
         if (inSlot) {
           // 从构筑槽拖回手牌
           const ha = document.getElementById("hand-area");

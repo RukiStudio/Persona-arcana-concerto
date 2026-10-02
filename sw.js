@@ -2,7 +2,7 @@
 // Service Worker：离线缓存 + 可安装（PWA）
 // 缓存版本变更时，请手动递增 CACHE 名称以强制刷新缓存
 // ============================================================
-const CACHE = "persona-arcana-v1";
+const CACHE = "persona-arcana-v4";
 
 const PRECACHE = [
   "./",
@@ -17,6 +17,7 @@ const PRECACHE = [
   "./js/meta.js",
   "./js/fusion.js",
   "./js/hub.js",
+  "./js/vfx.js",
   "./stages.json",
   "./assets/backgrounds/battle_bg.jpg",
   "./assets/card_frames/card_frame_blue.jpg",
