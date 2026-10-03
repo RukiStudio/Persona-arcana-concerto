@@ -18,13 +18,13 @@ import {
   DEFAULT_THEURGY_CONFIG,
   STARTING_PERSONAS,
   PERSONAS,
-} from "./data.js?v=18";
+} from "./data.js?v=19";
 import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=18";
 import {
   makePersonaCard,
   makeMinorCard,
   makeAttackCard,
-} from "./game.js?v=18";
+} from "./game.js?v=19";
 import { playElementBurst } from "./vfx.js?v=2";
 
 const BASE_HP = 300;
@@ -1002,24 +1002,24 @@ const DUEL_CSS = `
 #duel-screen .duel-header{height:72px;display:flex;justify-content:space-between;align-items:center;gap:22px;padding:0 30px;background:linear-gradient(180deg,#13224f,#0a1532);border-bottom:2px solid #2a3a6e}
 #duel-screen .duel-title{font-size:27px;letter-spacing:4px;color:#d4af37;font-weight:800;white-space:nowrap}
 #duel-screen .duel-hint{font-size:16px;color:#aab6dc;white-space:nowrap}
-#duel-screen .duel-body{display:flex;gap:18px;padding:16px 26px;height:calc(100% - 72px);min-height:0}
-#duel-screen .duel-left{width:510px;flex:0 0 510px;display:flex;flex-direction:column;gap:12px;min-height:0}
+#duel-screen .duel-body{display:flex;gap:14px;padding:12px 22px;height:calc(100% - 72px);min-height:0}
+#duel-screen .duel-left{width:560px;flex:0 0 560px;display:flex;flex-direction:column;gap:13px;min-height:0}
 #duel-screen .duel-mid{flex:1;display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
-#duel-screen .fighter-panel{background:#111a3a;border:1px solid #2a3a6e;border-radius:13px;padding:14px 16px;box-shadow:inset 0 0 24px rgba(20,35,80,.45)}
+#duel-screen .fighter-panel{background:#111a3a;border:1px solid #2a3a6e;border-radius:13px;padding:16px 18px;box-shadow:inset 0 0 24px rgba(20,35,80,.45)}
 #duel-screen .fighter-panel.enemy{border-color:#853044;background:linear-gradient(135deg,rgba(80,20,35,.35),rgba(17,26,58,.9))}
 #duel-screen .fighter-panel.self{background:linear-gradient(135deg,rgba(20,55,90,.38),rgba(17,26,58,.95))}
 #duel-screen .fp-head{display:flex;align-items:center;gap:10px;margin-bottom:9px;min-width:0}
-#duel-screen .fp-icon{font-size:34px;line-height:1}
-#duel-screen .fp-name{font-size:20px;font-weight:800;white-space:nowrap}
-#duel-screen .fp-arcana{font-size:13px;color:#9aa8d4;white-space:nowrap}
+#duel-screen .fp-icon{font-size:42px;line-height:1}
+#duel-screen .fp-name{font-size:23px;font-weight:800;white-space:nowrap}
+#duel-screen .fp-arcana{font-size:14px;color:#9aa8d4;white-space:nowrap}
 #duel-screen .fp-tags{margin-left:auto;display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
-#duel-screen .fp-tag{font-size:12px;padding:4px 8px;border-radius:7px;background:#1d2a4f;color:#c3cdf0;white-space:nowrap}
+#duel-screen .fp-tag{font-size:13px;padding:5px 9px;border-radius:7px;background:#1d2a4f;color:#c3cdf0;white-space:nowrap}
 #duel-screen .fp-tag.shield{background:#0f3d2a;color:#78f0b0;font-weight:700}
 #duel-screen .fp-tag.down{background:#5a1f28;color:#ff9ca8;font-weight:800}
-#duel-screen .hbar{height:16px;background:#111936;border:1px solid #2c3a68;border-radius:9px;overflow:hidden}
+#duel-screen .hbar{height:20px;background:#111936;border:1px solid #2c3a68;border-radius:9px;overflow:hidden}
 #duel-screen .hbar-fill{height:100%;width:0;background:linear-gradient(90deg,#2ecc71,#27ae60);transition:width .25s}
 #duel-screen .hbar-fill.low{background:linear-gradient(90deg,#e74c3c,#c0392b)}
-#duel-screen .hp-text{font-size:13px;margin-top:5px;color:#b8c4e8}
+#duel-screen .hp-text{font-size:14px;margin-top:5px;color:#b8c4e8}
 #duel-screen .theurgy-track{height:10px;margin-top:8px;border-radius:6px;background:#151d3d;border:1px solid #4a316f;overflow:hidden}
 #duel-screen .theurgy-fill{height:100%;background:linear-gradient(90deg,#8e44ad,#d4af37)}
 #duel-screen .aff-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
@@ -1030,33 +1030,33 @@ const DUEL_CSS = `
 #duel-screen .aff-REPEL,#duel-screen .aff-DRAIN{background:#453013;color:#ffd27d}
 #duel-screen .duel-log{flex:1;min-height:0;overflow-y:auto;background:#080e24;border:1px solid #22305c;border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.45}
 #duel-screen .log-e{margin:2px 0}.duel-log .log-info{color:#aab6dc}.duel-log .log-gold{color:#e7c55a}.duel-log .log-dmg{color:#ff7a7a}.duel-log .log-heal{color:#6ee7a8}
-#duel-screen .compose-wrap{border:1px solid #263769;border-radius:12px;background:#0d1634;padding:12px;min-height:214px}
-#duel-screen .compose-title{font-size:14px;color:#d4af37;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px}
+#duel-screen .compose-wrap{border:1px solid #263769;border-radius:12px;background:#0d1634;padding:14px;min-height:256px}
+#duel-screen .compose-title{font-size:15px;color:#d4af37;margin-bottom:9px;display:flex;justify-content:space-between;gap:10px}
 #duel-screen .compose{display:flex;gap:10px;justify-content:center;align-items:flex-start}
-#duel-screen .slot,#duel-screen .duel-card{width:108px;height:154px;border-radius:9px}
+#duel-screen .slot,#duel-screen .duel-card{width:132px;height:188px;border-radius:9px}
 #duel-screen .slot{border:2px dashed #3a4b86;display:flex;align-items:center;justify-content:center;color:#596aa3;font-size:30px;background:#0b122c}
 #duel-screen .slot.filled{border-style:solid;border-color:#d4af37;padding:0;overflow:hidden;cursor:pointer}
 #duel-screen .duel-preview{min-height:30px;text-align:center;color:#b8c4e8;font-size:14px;margin-top:8px}
 #duel-screen .duel-preview.gold{color:#e7c55a;font-weight:700}
-#duel-screen .duel-actions{display:flex;gap:9px;justify-content:center;flex-wrap:wrap}
-#duel-screen .cut-btn{background:#1d2a4f;border:1px solid #3d4d88;color:#e6e9f2;padding:10px 14px;border-radius:9px;cursor:pointer;font-size:15px;font-weight:700;min-height:42px}
+#duel-screen .duel-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+#duel-screen .cut-btn{background:#1d2a4f;border:1px solid #3d4d88;color:#e6e9f2;padding:12px 18px;border-radius:9px;cursor:pointer;font-size:16px;font-weight:700;min-height:48px}
 #duel-screen .cut-btn:hover:not(:disabled){filter:brightness(1.18)}
 #duel-screen .cut-btn:disabled{opacity:.38;cursor:not-allowed}
 #duel-screen .cut-btn.confirm{background:#174d32;border-color:#2ecc71}
 #duel-screen .cut-btn.danger{background:#5a1f28;border-color:#e74c3c}
 #duel-screen .cut-btn.gold{background:#4a3a10;border-color:#d4af37}
-#duel-screen .hand-wrap{flex:1;min-height:0;display:flex;flex-direction:column;border:1px solid #263769;border-radius:12px;background:#0b122c;padding:10px}
-#duel-screen .hand-title{font-size:14px;color:#d4af37;margin-bottom:8px}
+#duel-screen .hand-wrap{flex:1;min-height:0;display:flex;flex-direction:column;border:1px solid #263769;border-radius:12px;background:#0b122c;padding:12px}
+#duel-screen .hand-title{font-size:15px;color:#d4af37;margin-bottom:9px}
 #duel-screen .hand{flex:1;min-height:0;overflow-y:auto;display:flex;gap:10px;flex-wrap:wrap;align-content:flex-start;justify-content:center;padding-bottom:4px}
-#duel-screen .duel-card{position:relative;background:#1a2448;border:2px solid #3d4c86;padding:7px;cursor:pointer;user-select:none;transition:transform .1s,border-color .1s,box-shadow .1s;overflow:hidden}
+#duel-screen .duel-card{position:relative;background:#1a2448;border:2px solid #3d4c86;padding:8px;cursor:pointer;user-select:none;transition:transform .1s,border-color .1s,box-shadow .1s;overflow:hidden}
 #duel-screen .duel-card:hover{transform:translateY(-4px)}
 #duel-screen .duel-card.selected{border-color:#d4af37;box-shadow:0 0 14px rgba(212,175,55,.65)}
 #duel-screen .duel-card.reversed{filter:hue-rotate(170deg) saturate(.85)}
-#duel-screen .dc-icon{font-size:28px;text-align:center;line-height:1.15}
-#duel-screen .dc-name{font-size:12px;text-align:center;margin-top:3px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#duel-screen .dc-skill{font-size:10px;text-align:center;margin-top:5px;color:#c9d3f0;line-height:1.35;min-height:27px}
-#duel-screen .dc-type{position:absolute;left:0;right:0;bottom:4px;text-align:center;font-size:9px;color:#8494c8}
-#duel-screen .dc-rank{position:absolute;top:4px;right:6px;font-size:11px;color:#d4af37;font-weight:800}
+#duel-screen .dc-icon{font-size:36px;text-align:center;line-height:1.15}
+#duel-screen .dc-name{font-size:13px;text-align:center;margin-top:4px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#duel-screen .dc-skill{font-size:11px;text-align:center;margin-top:6px;color:#c9d3f0;line-height:1.4;min-height:33px}
+#duel-screen .dc-type{position:absolute;left:0;right:0;bottom:5px;text-align:center;font-size:10px;color:#8494c8}
+#duel-screen .dc-rank{position:absolute;top:5px;right:7px;font-size:13px;color:#d4af37;font-weight:800}
 #duel-screen .type-ATTACK{border-color:#c0392b;background:#2a1420}
 #duel-screen .type-THEURGY{border-color:#9b59b6;background:#251639}
 #duel-screen .type-WAND{border-color:#d4af37}

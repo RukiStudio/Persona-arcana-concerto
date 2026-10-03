@@ -7,7 +7,7 @@ import {
   STAT_UPGRADE_COSTS, STAT_INCREMENTS,
   STARTING_PERSONAS, RANK,
   DEFAULT_THEURGY_CONFIG, THEURGY_POOL,
-} from "./data.js?v=18";
+} from "./data.js?v=19";
 
 const SAVE_KEY = "persona_concerto_save_v1";        // 旧版单存档（迁移用）
 const PROFILES_KEY = "persona_concerto_profiles_v1"; // 多玩家档案（每个玩家独立存档）
@@ -79,9 +79,9 @@ export class MetaState {
     this.unlockedPersonas = new Set(saved?.unlockedPersonas ?? STARTING_PERSONAS);
     this.compendium = new Set(saved?.compendium ?? STARTING_PERSONAS);
     this.clearedStages = saved?.clearedStages ?? [];
-    // 永久属性加成（来自属性点分配）
-    this.bonusStats = saved?.bonusStats ?? { attack: 0, maxHp: 0, critRate: 0, maxReversed: 0, theurgyMax: 0, handLimit: 0 };
-    // 永久购买加成
+    // 永久属性加成（来自属性点分配，仅攻击/HP/暴击率三项；逆位/神通法/手牌上限不再可养成）
+    this.bonusStats = saved?.bonusStats ?? { attack: 0, maxHp: 0, critRate: 0 };
+    // 永久购买加成（历史字段，保留以防旧存档读取，但不再产生效果）
     this.bonusHandLimit = saved?.bonusHandLimit ?? 0;
     this.bonusTheurgyMax = saved?.bonusTheurgyMax ?? 0;
     // 难度等级（0~10，影响敌方伤害倍率）
@@ -163,26 +163,25 @@ export class MetaState {
     const inc = STAT_INCREMENTS[stat];
     const lvl = this.bonusStats[stat] ?? 0;
     // 难度压缩后的基础值
-    if (stat === "critRate") return { base: "3%", bonus: `+${(lvl * inc * 100).toFixed(0)}%`, total: `${((0.03 + lvl * inc) * 100).toFixed(0)}%` };
+    if (stat === "critRate") return { base: "3%", bonus: `+${(lvl * inc * 100).toFixed(0)}%`, total: `${(Math.min(0.03 + lvl * inc, 0.6) * 100).toFixed(0)}%` };
     if (stat === "maxHp") return { base: "300", bonus: `+${lvl * inc}`, total: String(300 + lvl * inc) };
-    if (stat === "attack") return { base: "18", bonus: `+${lvl * inc}`, total: String(18 + lvl * inc) };
-    if (stat === "maxReversed") return { base: "2", bonus: `+${lvl}`, total: String(2 + lvl) };
-    if (stat === "theurgyMax") return { base: "2", bonus: `+${lvl}`, total: String(2 + lvl) };
-    if (stat === "handLimit") return { base: "5", bonus: `+${lvl}`, total: String(5 + lvl) };
+    if (stat === "attack") return { base: "18", bonus: `+${lvl * inc}`, total: String(Math.min(18 + lvl * inc, 180)) };
     return { base: "0", bonus: "", total: "0" };
   }
 
   // 计算战斗中的实际玩家属性（难度压缩后基础值；阵营特性按等级应用）
+  // 逆位上限/神通法次数/手牌上限不再可养成，固定为基础值
   getBattlePlayerStats() {
     const s = this.bonusStats;
     const arcana = ARCANA[this.arcanaId];
     const arcanaLv = this.getArcanaLevel(this.arcanaId);
     let attack = 18 + (s.attack ?? 0) * STAT_INCREMENTS.attack;
-  let maxHp = 300 + (s.maxHp ?? 0) * STAT_INCREMENTS.maxHp;
+    let maxHp = 300 + (s.maxHp ?? 0) * STAT_INCREMENTS.maxHp;
     let critRate = 0.03 + (s.critRate ?? 0) * STAT_INCREMENTS.critRate;
-    let maxReversed = 2 + (s.maxReversed ?? 0);
-    let theurgyMax = 2 + (s.theurgyMax ?? 0) + this.bonusTheurgyMax;
-    let handLimit = 5 + (s.handLimit ?? 0) + this.bonusHandLimit;
+    // 固定值（不受局外养成影响）
+    const maxReversed = 2;
+    const theurgyMax = 2;
+    const handLimit = 5;
 
     // 阵营特性按等级应用（仅基础属性部分；其它效果在 game.js/core.js 内分级应用）
     if (arcana?.bonusKey === "FLAT_ATK") {
@@ -194,10 +193,10 @@ export class MetaState {
       // 正义：暴击 +5%/+10%/+15%
       critRate += [0.05, 0.10, 0.15][arcanaLv - 1] || 0.05;
     }
-    if (arcana?.bonusKey === "EXTRA_REVERSE") {
-      // 命运：逆位上限 +1/+2/+3
-      maxReversed += [1, 2, 3][arcanaLv - 1] || 1;
-    }
+
+    // 攻击力与暴击率加成上限（防止数值膨胀）
+    attack = Math.min(attack, 180);
+    critRate = Math.min(critRate, 0.6);
 
     return { attack, maxHp, critRate, maxReversed, theurgyMax, handLimit, arcanaLv };
   }
@@ -230,6 +229,29 @@ export class MetaState {
       this.compendium.add(key);
       this.save();
     }
+  }
+
+  // 通关奖励：根据关卡进度解锁一张对应等阶的人格面具
+  // 使正常游玩全流程即可解锁大部分人格面具
+  grantStageRewardPersona(stageIndex) {
+    let targetRank;
+    if (stageIndex <= 1) targetRank = RANK.C;
+    else if (stageIndex <= 3) targetRank = RANK.B;
+    else targetRank = RANK.A;
+
+    // 优先目标等阶，没有则降级查找未解锁的人格面具
+    for (let rank = targetRank; rank >= RANK.C; rank--) {
+      const candidates = Object.keys(PERSONAS)
+        .filter(k => !PERSONAS[k].skill)
+        .filter(k => PERSONAS[k].rank === rank)
+        .filter(k => !this.isUnlocked(k));
+      if (candidates.length > 0) {
+        const key = candidates[Math.floor(Math.random() * candidates.length)];
+        this.unlockPersona(key);
+        return { key, name: PERSONAS[key].name, rank };
+      }
+    }
+    return null;
   }
 
   isUnlocked(key) { return this.unlockedPersonas.has(key); }
@@ -334,11 +356,6 @@ export class MetaState {
         this.money += item.amount;
         this.save();
         return { ok: true, msg: `获得 ◈${item.amount} 精魄` };
-      case "THEURGY_MAX":
-        this.money -= item.cost;
-        this.bonusTheurgyMax += item.amount;
-        this.save();
-        return { ok: true, msg: `神通法次数 +${item.amount}` };
       default:
         return { ok: false, msg: "未知商品类型" };
     }

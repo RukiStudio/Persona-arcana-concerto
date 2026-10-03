@@ -6,9 +6,9 @@ import {
   ELEMENT_INFO, POWER_INFO, RANK_LABEL, RANK, AFFINITY, ELEMENT,
   STAT_UPGRADE_COSTS, STAT_INCREMENTS, EXP_CURVE, MAX_PLAYER_LEVEL,
   THEURGY_POOL,
-} from "./data.js?v=18";
-import { MetaState } from "./meta.js?v=18";
-import { getFusionResult, executeFusion, getAvailableFusions } from "./fusion.js?v=18";
+} from "./data.js?v=19";
+import { MetaState } from "./meta.js?v=19";
+import { getFusionResult, executeFusion, getAvailableFusions } from "./fusion.js?v=19";
 
 export class Hub {
   constructor(meta, onEnterStage, onEnterDuel) {
@@ -223,7 +223,7 @@ export class Hub {
                   <span class="comp-icon-sm">${f.icon}</span>
                   <strong>${f.name}</strong>
                   <span class="card-rank-sm rank-${f.rankLabel}">${f.rankLabel}</span>
-                  <span class="fusion-cost">◈${f.cost}</span>
+                  <span class="fusion-cost">免费</span>
                 </div>
               `).join("")}
             </div>
@@ -280,12 +280,12 @@ export class Hub {
             <span class="comp-icon">${result.icon}</span>
             <div class="comp-name">${result.name}</div>
             <div class="comp-arcana">${result.arcanaName} · ${result.rankLabel}</div>
-            <div class="fusion-cost">费用: ◈${result.cost}</div>
+            <div class="fusion-cost">费用: 免费</div>
             ${result.inheritedSkills.length ? `<div class="comp-skills-mini">继承: ${result.inheritedSkills.map(s => `${ELEMENT_INFO[s.element]?.icon ?? ""}${s.name}`).join(", ")}</div>` : ""}
             ${this.meta.isUnlocked(result.key) ? '<div class="comp-status locked-tag">已解锁</div>' : ""}
           </div>
         `;
-        if (execBtn) execBtn.disabled = this.meta.isUnlocked(result.key) || this.meta.money < result.cost;
+        if (execBtn) execBtn.disabled = this.meta.isUnlocked(result.key);
       } else {
         if (elPreview) elPreview.innerHTML = '<span class="fusion-fail">合体失败：无可用结果</span>';
         if (execBtn) execBtn.disabled = true;
@@ -318,8 +318,8 @@ export class Hub {
 
   // ==================== 属性强化 ====================
   renderStats(container) {
-    const stats = ["attack", "maxHp", "critRate", "maxReversed", "theurgyMax", "handLimit"];
-    const labels = { attack: "攻击力", maxHp: "最大HP", critRate: "暴击率", maxReversed: "逆位上限", theurgyMax: "神通法次数", handLimit: "手牌上限" };
+    const stats = ["attack", "maxHp", "critRate"];
+    const labels = { attack: "攻击力", maxHp: "最大HP", critRate: "暴击率" };
     const diff = this.meta.getDifficulty();
     const diffMult = this.meta.getEnemyDamageMultiplier();
     const theurgyConfig = this.meta.getTheurgyConfig();

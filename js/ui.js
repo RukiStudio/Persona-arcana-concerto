@@ -4,7 +4,7 @@
 import {
   ELEMENT, ELEMENT_INFO, POWER_INFO, RANK_LABEL, CARD_TYPE, AFFINITY,
   ENVIRONMENT_INFO,
-} from "./data.js?v=18";
+} from "./data.js?v=19";
 import { getActiveSkill, calcBaseDamage } from "./core.js?v=18";
 import { playElementBurst } from "./vfx.js?v=2";
 

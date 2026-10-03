@@ -914,14 +914,11 @@ export const MAX_PLAYER_LEVEL = 20;
 // 每级获得的属性点
 export const STAT_POINTS_PER_LEVEL = 3;
 
-// 属性升级消耗
+// 属性升级消耗（仅攻击力/HP/暴击率三项可养成，逆位/神通法/手牌上限固定）
 export const STAT_UPGRADE_COSTS = {
   attack: 2,      // 每点攻击力消耗2点属性点
   maxHp: 1,       // 每点HP消耗1点属性点（+50 HP per point）
   critRate: 3,    // 每点暴击率消耗3点（+2% per point）
-  maxReversed: 5, // 每点逆位上限消耗5点
-  theurgyMax: 4,  // 每点神通法上限消耗4点
-  handLimit: 3,   // 每点手牌上限消耗3点
 };
 
 // 属性升级增量
@@ -929,9 +926,6 @@ export const STAT_INCREMENTS = {
   attack: 15,
   maxHp: 50,
   critRate: 0.02,
-  maxReversed: 1,
-  theurgyMax: 1,
-  handLimit: 1,
 };
 
 // ============================================================
@@ -967,17 +961,15 @@ export function getFusionArcana(arcanaA, arcanaB) {
 // ============================================================
 export const SHOP_ITEMS = [
   // 人格面具（随机解锁池）
-  { id: "shop_persona_c", name: "随机C阶人格面具", icon: "🎴", desc: "解锁一张随机C阶人格面具", cost: 500, type: "PERSONA_UNLOCK", filter: { rank: 1 } },
-  { id: "shop_persona_b", name: "随机B阶人格面具", icon: "🎴", desc: "解锁一张随机B阶人格面具", cost: 1500, type: "PERSONA_UNLOCK", filter: { rank: 2 } },
-  { id: "shop_persona_a", name: "随机A阶人格面具", icon: "🎴", desc: "解锁一张随机A阶人格面具", cost: 4000, type: "PERSONA_UNLOCK", filter: { rank: 3 } },
+  { id: "shop_persona_c", name: "随机C阶人格面具", icon: "🎴", desc: "解锁一张随机C阶人格面具", cost: 200, type: "PERSONA_UNLOCK", filter: { rank: 1 } },
+  { id: "shop_persona_b", name: "随机B阶人格面具", icon: "🎴", desc: "解锁一张随机B阶人格面具", cost: 600, type: "PERSONA_UNLOCK", filter: { rank: 2 } },
+  { id: "shop_persona_a", name: "随机A阶人格面具", icon: "🎴", desc: "解锁一张随机A阶人格面具", cost: 1500, type: "PERSONA_UNLOCK", filter: { rank: 3 } },
   // 属性点
   { id: "shop_stat_3", name: "属性点 ×3", icon: "⭐", desc: "获得3个可分配属性点", cost: 1000, type: "STAT_POINTS", amount: 3 },
   { id: "shop_stat_10", name: "属性点 ×10", icon: "⭐", desc: "获得10个可分配属性点", cost: 3000, type: "STAT_POINTS", amount: 10 },
   // 精魄包（原金币包，type=GOLD 仍累加到 meta.money = 精魄）
   { id: "shop_gold_500", name: "精魄 ◈500", icon: "💎", desc: "立即获得 500 精魄", cost: 200, type: "GOLD", amount: 500 },
   { id: "shop_gold_2000", name: "精魄 ◈2000", icon: "💎", desc: "立即获得 2000 精魄", cost: 700, type: "GOLD", amount: 2000 },
-  // 神通法次数
-  { id: "shop_theurgy_1", name: "神通法次数+1", icon: "🔮", desc: "永久增加1次神通法使用上限", cost: 5000, type: "THEURGY_MAX", amount: 1 },
 ];
 
 // ============================================================

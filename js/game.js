@@ -7,7 +7,7 @@ import {
   ELEMENT_INFO, POWER_INFO,
   STARTING_PERSONAS, THEURGY_POOL, DEFAULT_THEURGY_CONFIG,
   nextId,
-} from "./data.js?v=18";
+} from "./data.js?v=19";
 import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=18";
 
 // 卡牌工厂
@@ -971,6 +971,12 @@ export class Game {
         this.meta.addExp(stage.reward.exp);
         this.meta.money += stage.reward.money;
         this.meta.clearStage(stage.id);
+        // 通关奖励：解锁一张对应等阶的人格面具
+        const personaReward = this.meta.grantStageRewardPersona(this.stageIndex);
+        if (personaReward) {
+          reward.persona = personaReward.name;
+          this.log(`🎴 新人格面具解锁：${personaReward.name}`, "gold");
+        }
         // 注册使用过的人格面具到图鉴
         this.hand.forEach(c => { if (c.cardKey) this.meta.registerPersona(c.cardKey); });
         this.composeSlots.forEach(c => { if (c.cardKey) this.meta.registerPersona(c.cardKey); });

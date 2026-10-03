@@ -3,7 +3,7 @@
 // ============================================================
 import {
   PERSONAS, ARCANA, getFusionArcana, RANK, RANK_LABEL, SKILLS,
-} from "./data.js?v=18";
+} from "./data.js?v=19";
 
 /**
  * 获取合体结果的人格面具
@@ -66,7 +66,7 @@ export function getFusionResult(keyA, keyB) {
     rank: best.rank,
     rankLabel: RANK_LABEL[best.rank],
     inheritedSkills: uniqueInherited,
-    cost: 300 * (pA.rank + pB.rank),
+    cost: 0, // 合体不再消耗精魄
   };
 }
 
@@ -81,16 +81,12 @@ export function executeFusion(meta, keyA, keyB) {
   const result = getFusionResult(keyA, keyB);
   if (!result) return { ok: false, msg: "合体失败：无法找到合适的结果" };
 
-  if (meta.money < result.cost) {
-    return { ok: false, msg: `资金不足，需要 ◈${result.cost}` };
-  }
-
   // 如果已经解锁了，提示
   if (meta.isUnlocked(result.key)) {
     return { ok: false, msg: `${result.name} 已解锁，请尝试其他组合` };
   }
 
-  meta.money -= result.cost;
+  // 合体不消耗精魄，直接解锁
   meta.unlockPersona(result.key);
   return { ok: true, msg: `合体成功！解锁了 ${result.name}（${result.arcanaName}）`, result };
 }

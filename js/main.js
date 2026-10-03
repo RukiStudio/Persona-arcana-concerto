@@ -1,28 +1,30 @@
 // ============================================================
 // 游戏入口：玩家档案选择、初始化、Hub ↔ 战斗切换
 // ============================================================
-import { Game } from "./game.js?v=18";
+import { Game } from "./game.js?v=19";
 import { UI } from "./ui.js?v=20";
-import { MetaState } from "./meta.js?v=18";
-import { Hub } from "./hub.js?v=19";
-import { startDuel } from "./duel.js?v=19";
-import { loadStagesData } from "./data.js?v=18";
+import { MetaState } from "./meta.js?v=19";
+import { Hub } from "./hub.js?v=20";
+import { startDuel } from "./duel.js?v=20";
+import { loadStagesData } from "./data.js?v=19";
 
-// 等比缩放适配：战斗界面铺满自适应放大，Hub 界面移动端缩小
+// 等比缩放适配
+// 桌面端：min 等比完整显示；移动端（触屏）：max 铺满裁剪放大，布局比例不变，元素放大提升可读性
+// Hub 不做缩放，按自身布局自适应
 function fitScreen() {
   const scaleX = window.innerWidth / 1920;
   const scaleY = window.innerHeight / 1080;
-  const scale = Math.min(scaleX, scaleY);
+  const isMobile = window.matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
+  const scale = isMobile ? Math.max(scaleX, scaleY) : Math.min(scaleX, scaleY);
   const offsetX = (window.innerWidth - 1920 * scale) / 2;
   const offsetY = (window.innerHeight - 1080 * scale) / 2;
-  // 战斗界面：铺满屏幕（自适应放大）
+  // 战斗界面：桌面完整显示 / 触屏放大裁剪
   const gameRoot = document.getElementById("game-root");
   gameRoot.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
 
-  // Hub 界面：移动端（触屏）缩小至 65%，其余界面不变
-  const isMobile = window.matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
+  // Hub 不缩放（移除移动端缩小效果）
   const hubEl = document.getElementById("hub-screen");
-  hubEl.style.transform = isMobile ? "scale(0.65)" : "";
+  hubEl.style.transform = "";
 }
 window.addEventListener("resize", fitScreen);
 
@@ -118,7 +120,7 @@ function showHub() {
   if (game && game.isTutorial && game.tutorialStep === 8) {
     const tip = {
       title: "⑦ 局 外 养 成",
-      body: "★ 局外养成系统：\n• 人格面具图鉴：查看已收集的人格面具\n• 合体召唤：用 2 张人格面具合成新的（消耗精魄）\n• 属性强化：用属性点提升基础属性\n• 阵营选择：切换阵营并升级特性\n• 天鹅绒商店：购买精魄包与扩展\n★ 多档案存档：每个玩家独立进度",
+      body: "★ 局外养成系统：\n• 人格面具图鉴：查看已收集的人格面具\n• 合体召唤：用 2 张人格面具合成新的（免费）\n• 属性强化：用属性点提升基础属性\n• 阵营选择：切换阵营并升级特性\n• 天鹅绒商店：购买精魄包与扩展\n★ 多档案存档：每个玩家独立进度",
       target: ".hub-nav",
     };
     setTimeout(() => {
