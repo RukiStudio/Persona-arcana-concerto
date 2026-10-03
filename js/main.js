@@ -1,28 +1,26 @@
 // ============================================================
 // 游戏入口：玩家档案选择、初始化、Hub ↔ 战斗切换
 // ============================================================
-import { Game } from "./game.js?v=19";
-import { UI } from "./ui.js?v=20";
+import { Game } from "./game.js?v=20";
+import { UI } from "./ui.js?v=21";
 import { MetaState } from "./meta.js?v=19";
 import { Hub } from "./hub.js?v=20";
-import { startDuel } from "./duel.js?v=20";
-import { loadStagesData } from "./data.js?v=19";
+import { startDuel } from "./duel.js?v=22";
+import { loadStagesData } from "./data.js?v=20";
 
-// 等比缩放适配
-// 桌面端：min 等比完整显示；移动端（触屏）：max 铺满裁剪放大，布局比例不变，元素放大提升可读性
+// 等比缩放适配：min 等比完整显示，桌面与移动端一致
 // Hub 不做缩放，按自身布局自适应
 function fitScreen() {
   const scaleX = window.innerWidth / 1920;
   const scaleY = window.innerHeight / 1080;
-  const isMobile = window.matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
-  const scale = isMobile ? Math.max(scaleX, scaleY) : Math.min(scaleX, scaleY);
+  const scale = Math.min(scaleX, scaleY);
   const offsetX = (window.innerWidth - 1920 * scale) / 2;
   const offsetY = (window.innerHeight - 1080 * scale) / 2;
-  // 战斗界面：桌面完整显示 / 触屏放大裁剪
+  // 战斗界面：等比完整显示
   const gameRoot = document.getElementById("game-root");
   gameRoot.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
 
-  // Hub 不缩放（移除移动端缩小效果）
+  // Hub 不缩放
   const hubEl = document.getElementById("hub-screen");
   hubEl.style.transform = "";
 }

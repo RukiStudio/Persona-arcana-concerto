@@ -6,7 +6,7 @@ import {
   ELEMENT_INFO, POWER_INFO, RANK_LABEL, RANK, AFFINITY, ELEMENT,
   STAT_UPGRADE_COSTS, STAT_INCREMENTS, EXP_CURVE, MAX_PLAYER_LEVEL,
   THEURGY_POOL,
-} from "./data.js?v=19";
+} from "./data.js?v=20";
 import { MetaState } from "./meta.js?v=19";
 import { getFusionResult, executeFusion, getAvailableFusions } from "./fusion.js?v=19";
 

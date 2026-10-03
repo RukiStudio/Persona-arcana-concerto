@@ -4,7 +4,7 @@
 import {
   ELEMENT, POWER, POWER_MULTIPLIER, AFFINITY, AFFINITY_MULTIPLIER,
   RANGE, CARD_TYPE,
-} from "./data.js?v=19";
+} from "./data.js?v=20";
 
 /**
  * 获取卡牌当前生效的技能数据
@@ -129,7 +129,12 @@ export function calculateDamage(skill, player, enemy, env) {
     return { damage: drained, affinity, isCrit, isDrain: true };
   }
 
-  const final = Math.round(base * mult * cupMult * kdMult * critMult);
+  // 正义 Lv3：暴击时无视耐性（RESIST 视为 NORMAL）
+  let finalMult = mult;
+  if (player.arcanaBonus === "CRIT_UP" && (player.arcanaLv || 1) >= 3 && isCrit && affinity === AFFINITY.RESIST) {
+    finalMult = AFFINITY_MULTIPLIER[AFFINITY.NORMAL];
+  }
+  const final = Math.round(base * finalMult * cupMult * kdMult * critMult);
   return { damage: final, affinity, isCrit };
 }
 

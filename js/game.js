@@ -7,8 +7,8 @@ import {
   ELEMENT_INFO, POWER_INFO,
   STARTING_PERSONAS, THEURGY_POOL, DEFAULT_THEURGY_CONFIG,
   nextId,
-} from "./data.js?v=19";
-import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=18";
+} from "./data.js?v=20";
+import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=19";
 
 // 卡牌工厂
 export function makePersonaCard(key) {
@@ -171,9 +171,23 @@ export class Game {
     if (this.player.money < cost) { this.log("资金不足！", "info"); return false; }
     if (this.hand.length >= this.handLimit) { this.log("手牌已满！", "info"); return false; }
     this.player.money -= cost;
-    this.player.drawCost *= 2;
+    // 命运阵营：抽卡费用增长变慢（×1.5/×1.3/×1.2 代替 ×2）
+    if (this.player.arcanaBonus === "FORTUNE_ECONOMY") {
+      const mult = [1.5, 1.3, 1.2][this.arcanaLv - 1] || 1.5;
+      this.player.drawCost = Math.round(this.player.drawCost * mult);
+    } else {
+      this.player.drawCost *= 2;
+    }
     this.drawCard();
     this.log(`花费 ¥${cost} 抽取一张牌`, "gold");
+    // 隐者阵营：花钱抽卡有概率额外多抽一张（不超过手牌上限）
+    if (this.player.arcanaBonus === "HERMIT_LUCKY_DRAW") {
+      const chance = [0.30, 0.50, 0.70][this.arcanaLv - 1] || 0.30;
+      if (Math.random() < chance && this.hand.length < this.handLimit) {
+        this.drawCard();
+        this.log(`隐者加成：额外抽到一张牌！`, "gold");
+      }
+    }
     // 教程：抽牌推进 step 4→5（此时应抽到俄耳甫斯）
     if (this.isTutorial && this.tutorialStep === 4) {
       this.tutorialStep = 5;
@@ -190,7 +204,12 @@ export class Game {
     // 每回合升级费用递减：第1回合-15%，第2回合-30%，第3回合及以后-50%；升级后重置
     const discountTurns = Math.min(this.turn - this.lastUpgradeTurn - 1, 3);
     const discount = discountTurns <= 0 ? 0 : [0, 0.15, 0.30, 0.50][discountTurns];
-    const cost = Math.round(baseCost * (1 - discount));
+    // 命运阵营：升级费用额外减免 20%/35%/50%
+    let fortuneDiscount = 0;
+    if (this.player.arcanaBonus === "FORTUNE_ECONOMY") {
+      fortuneDiscount = [0.20, 0.35, 0.50][this.arcanaLv - 1] || 0.20;
+    }
+    const cost = Math.round(baseCost * (1 - discount) * (1 - fortuneDiscount));
     if (this.deckLevel >= 5) { this.log("牌库已满级", "info"); return false; }
     if (this.player.money < cost) { this.log(`资金不足！需要 ¥${cost}`, "info"); return false; }
     this.player.money -= cost;
@@ -340,10 +359,6 @@ export class Game {
 
     // 发牌：min(4, 1+牌库等级)
     let drawNum = Math.min(4, 1 + this.deckLevel);
-    // 隐者阵营：按等级 多抽 1/2/2 张
-    if (this.player.arcanaBonus === "EXTRA_DRAW") {
-      drawNum += [1, 2, 2][this.arcanaLv - 1] || 1;
-    }
     // 教程：第一回合固定发软泥怪 + 小宝剑；第二回合后正常发牌
     if (this.isTutorial && this.turn === 1) {
       this.drawCards(2); // 抽软泥怪 + 小宝剑
@@ -527,9 +542,8 @@ export class Game {
     if (this.state !== "PLAYER_ACTION") return false;
     const card = this.hand.find(c => c.id === cardId) || this.composeSlots.find(c => c.id === cardId);
     if (!card || card.type !== CARD_TYPE.PERSONA) return false;
-    // 若正→逆，检查场上逆位牌是否已达上限（倒悬者阵营不受限）
-    const freeFlip = this.player.arcanaBonus === "FREE_FLIP";
-    if (!card.is_reversed && !freeFlip && this.getReversedCount() >= this.player.maxReversed) {
+    // 若正→逆，检查场上逆位牌是否已达上限
+    if (!card.is_reversed && this.getReversedCount() >= this.player.maxReversed) {
       this.log(`场上逆位牌已达上限 (${this.player.maxReversed}张)`, "info");
       return false;
     }
@@ -816,6 +830,15 @@ export class Game {
 
   applyDamageResult(enemy, result, skill) {
     if (result.isHeal) { return; }
+    // 倒悬者阵营：攻击被耐性/无效/反弹/吸收时增加神通法充能
+    if (this.player.arcanaBonus === "HANGED_RESIST_CHARGE") {
+      const blockedAffinities = [AFFINITY.RESIST, AFFINITY.NULL, AFFINITY.REPEL, AFFINITY.DRAIN];
+      if (blockedAffinities.includes(result.affinity) || result.isRepel || result.isDrain) {
+        const charge = [15, 25, 35][this.arcanaLv - 1] || 15;
+        this.addTheurgy(charge);
+        this.log(`倒悬者加成：神通法 +${charge}`, "gold");
+      }
+    }
     if (result.isRepel) {
       this.log(`${enemy.name} 反弹了 ${result.damage} 伤害！`, "dmg");
       this.damagePlayer(result.damage);
@@ -854,6 +877,13 @@ export class Game {
       const affTxt = result.affinity === AFFINITY.WEAK ? "（弱点！）" :
                      result.affinity === AFFINITY.RESIST ? "（耐性）" : "";
       this.log(`对 ${enemy.name} 造成 ${result.damage} 伤害${affTxt}${result.isCrit ? " 暴击！" : ""}`, result.affinity === AFFINITY.WEAK ? "dmg" : "info");
+
+      // 女教皇阵营：首次构筑造成伤害后返还资金
+      if (result.damage > 0 && skill && skill.priestessBonus && skill.priestessRefund) {
+        this.player.money += skill.priestessRefund;
+        this.log(`女教皇加成：返还 ¥${skill.priestessRefund}`, "gold");
+        skill.priestessBonus = false; // 仅返还一次
+      }
 
       // 弱点 → 倒地 + 神通法槽+20% + 立即抽一张手牌
       if (result.affinity === AFFINITY.WEAK) {
@@ -1020,6 +1050,14 @@ export class Game {
         eff.power = Math.min(eff.power + 1, POWER.UL);
         eff.foolBonus = true;
       }
+    }
+    // 女教皇：首次构筑力度 +1/+2/+2，且造成伤害后返还资金
+    if (this.arcana.bonusKey === "PRIESTESS_COMPOSE" && this.firstComposeThisTurn) {
+      const powerBonus = [1, 2, 2][this.arcanaLv - 1] || 1;
+      const refund = [30, 50, 80][this.arcanaLv - 1] || 30;
+      eff.power = Math.min(eff.power + powerBonus, POWER.UL);
+      eff.priestessBonus = true;
+      eff.priestessRefund = refund;
     }
     return eff;
   }

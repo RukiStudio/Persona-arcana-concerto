@@ -54,8 +54,7 @@ Persona即时卡牌/
 ├── scripts/              # Android 图标生成脚本
 ├── .github/workflows/    # GitHub Actions（APK 自动构建）
 ├── run.bat               # 一键启动网页版（需 Python）
-├── web_server.py         # 本地网页服务器
-└── main.py / engine.py … # 原版 CMD（终端）入口与游戏引擎
+├── web_server.py         # 本地静态文件服务器
 ```
 
 ---
@@ -76,13 +75,9 @@ python -u web_server.py
 
 然后浏览器访问 `http://localhost:8765`。
 
-### 方式三：原版终端版
+### 方式三：直接打开
 
-```bash
-python main.py
-```
-
-> ⚠️ 由于游戏通过 `fetch` 加载 `stages.json`，请勿直接双击 `index.html` 以 `file://` 打开（会被浏览器 CORS 拦截），务必走本地服务器。
+如果浏览器允许 `file://` 加载 `stages.json`（如 Edge/Chrome 关闭安全限制），可直接双击 `index.html`。否则请使用方式一/二启动本地服务器。
 
 ---
 

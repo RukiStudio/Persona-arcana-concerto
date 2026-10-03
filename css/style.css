@@ -943,17 +943,20 @@ body.attack-used-flash {
   margin-left: 4px;
 }
 
-/* 教程气泡提示 */
+/* 教程气泡提示：位置靠下（构筑区附近），避免遮挡顶部敌人弱点 */
 .tutorial-tip {
   position: fixed;
-  top: 24%;
+  top: auto;
+  bottom: 34%;
   left: 50%;
-  transform: translate(-50%, -50%) scale(0.9);
+  transform: translateX(-50%) scale(0.9);
   background: linear-gradient(180deg, #1f1242 0%, #0a061f 100%);
   border: 2px solid var(--c-gold, #d4af37);
   border-radius: 10px;
   padding: 16px 20px;
-  width: min(440px, 90vw);
+  width: min(520px, 92vw);
+  max-height: 52vh;
+  overflow-y: auto;
   box-shadow: 0 0 50px rgba(212, 175, 55, 0.4), 0 8px 32px rgba(0, 0, 0, 0.6);
   z-index: 9000;
   opacity: 0;
@@ -964,7 +967,7 @@ body.attack-used-flash {
 .tutorial-tip.show {
   opacity: 1;
   pointer-events: auto;
-  transform: translate(-50%, -50%) scale(1);
+  transform: translateX(-50%) scale(1);
 }
 .tutorial-tip-head {
   display: flex;

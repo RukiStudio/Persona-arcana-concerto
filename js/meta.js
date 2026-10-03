@@ -7,7 +7,7 @@ import {
   STAT_UPGRADE_COSTS, STAT_INCREMENTS,
   STARTING_PERSONAS, RANK,
   DEFAULT_THEURGY_CONFIG, THEURGY_POOL,
-} from "./data.js?v=19";
+} from "./data.js?v=20";
 
 const SAVE_KEY = "persona_concerto_save_v1";        // 旧版单存档（迁移用）
 const PROFILES_KEY = "persona_concerto_profiles_v1"; // 多玩家档案（每个玩家独立存档）

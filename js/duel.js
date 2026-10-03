@@ -12,19 +12,20 @@ import {
   RANGE,
   ELEMENT,
   AFFINITY,
+  AFFINITY_MULTIPLIER,
   ELEMENT_INFO,
   POWER_INFO,
   POWER_MULTIPLIER,
   DEFAULT_THEURGY_CONFIG,
   STARTING_PERSONAS,
   PERSONAS,
-} from "./data.js?v=19";
-import { composeSkill, calculateDamage, getActiveSkill } from "./core.js?v=18";
+} from "./data.js?v=20";
+import { composeSkill, calculateDamage, getActiveSkill, calcBaseDamage, getAffinity } from "./core.js?v=19";
 import {
   makePersonaCard,
   makeMinorCard,
   makeAttackCard,
-} from "./game.js?v=19";
+} from "./game.js?v=20";
 import { playElementBurst } from "./vfx.js?v=2";
 
 const BASE_HP = 300;
@@ -83,7 +84,6 @@ class Fighter {
     // 局内即时生效的属性类特性（基础 Lv.1）
     if (this.arcanaBonus === "FLAT_ATK") this.attack = Math.round(this.attack * 1.05);
     if (this.arcanaBonus === "CRIT_UP") this.critRate += 0.05;
-    if (this.arcanaBonus === "EXTRA_REVERSE") this.maxReversed += 1;
 
     this.money = BASE_MONEY;
     this.drawCost = 60;
@@ -327,7 +327,6 @@ export class Duel {
     const income = 80 + this.turn * 15 + (f.arcanaBonus === "EXTRA_INCOME" ? 30 : 0);
     f.money += income;
     let drawNum = Math.min(4, 1 + f.deckLevel);
-    if (f.arcanaBonus === "EXTRA_DRAW") drawNum += 1;
     this.drawCards(f, drawNum);
     this.discardAttackCards(f);
     this.log(`回合 ${this.turn} · ${f.name} 获得 ¥${income}`, "info");
@@ -345,9 +344,7 @@ export class Duel {
       return;
     }
     const cost = f.drawCost;
-    f.money -= cost;
-    f.drawCost *= 2;
-    this.drawCard(f);
+    this.doDrawFor(f);
     this.log(`花费 ¥${cost} 抽取一张牌`, "gold");
     this.emit("state");
   }
@@ -385,7 +382,9 @@ export class Duel {
       if (!f.isAI) this.log("牌库已满级", "info");
       return false;
     }
-    const baseCost = DUEL_UPGRADE_COSTS[f.deckLevel - 1] || 99999;
+    let baseCost = DUEL_UPGRADE_COSTS[f.deckLevel - 1] || 99999;
+    // 命运阵营：升级费用 -20%
+    if (f.arcanaBonus === "FORTUNE_ECONOMY") baseCost = Math.round(baseCost * 0.8);
     if (f.money < baseCost) {
       if (!f.isAI) this.log(`资金不足！升级牌库需 ¥${baseCost}`, "info");
       return false;
@@ -421,9 +420,10 @@ export class Duel {
   // 首次构筑加成：愚者/女教皇 基础等级时，本回合首次构筑力度+1
   applyComposeBonus(f, skill) {
     if (!skill) return skill;
-    if (f.arcanaBonus === "FOOL_FIRST" || f.arcanaBonus === "FIRST_CARD_UP") {
+    if (f.arcanaBonus === "FOOL_FIRST" || f.arcanaBonus === "PRIESTESS_COMPOSE") {
       if (f.firstComposeThisTurn) {
-        return { ...skill, power: Math.min(POWER.UL, skill.power + 1), foolBonus: true };
+        const refund = f.arcanaBonus === "PRIESTESS_COMPOSE" ? 30 : 0;
+        return { ...skill, power: Math.min(POWER.UL, skill.power + 1), foolBonus: true, priestessBonus: !!refund, priestessRefund: refund };
       }
     }
     return skill;
@@ -436,8 +436,7 @@ export class Duel {
       f.composeSlots.find(c => c.id === cardId);
     if (!card || card.type !== CARD_TYPE.PERSONA) return;
 
-    const freeFlip = f.arcanaBonus === "FREE_FLIP";
-    if (!card.is_reversed && !freeFlip && this.getReversedCount(f) >= f.maxReversed) {
+    if (!card.is_reversed && this.getReversedCount(f) >= f.maxReversed) {
       this.log(`场上逆位牌已达上限（${f.maxReversed} 张）`, "info");
       return;
     }
@@ -689,6 +688,16 @@ export class Duel {
       return false;
     }
 
+    // 倒悬者阵营：攻击被耐性/无效/反弹/吸收时增加神通法充能
+    if (source.arcanaBonus === "HANGED_RESIST_CHARGE") {
+      const blocked = result.affinity === AFFINITY.RESIST || result.affinity === AFFINITY.NULL ||
+        result.isRepel || result.isDrain;
+      if (blocked) {
+        source.theurgy = Math.min(100, source.theurgy + 15);
+        this.log(`倒悬者加成：${source.name} 神通法 +15`, "gold");
+      }
+    }
+
     if (result.damage === 0 && result.affinity === AFFINITY.NULL) {
       this.log(`${target.name} 无效化了${elementInfo.name}属性攻击`, "info");
       return false;
@@ -728,6 +737,12 @@ export class Duel {
       source.hand.push(makeMinorCard("wand"));
       source.money += WEAK_REWARD_MONEY;
       this.log(`弱点击破！${source.name} 固定获得权杖，并恢复 ¥${WEAK_REWARD_MONEY}`, "gold");
+    }
+    // 女教皇阵营：首次构筑造成伤害后返还资金
+    if (skill.priestessBonus && skill.priestessRefund) {
+      source.money += skill.priestessRefund;
+      this.log(`女教皇加成：${source.name} 返还 ¥${skill.priestessRefund}`, "gold");
+      skill.priestessBonus = false;
     }
     return true;
   }
@@ -786,48 +801,9 @@ export class Duel {
     this.emit("state");
     await this.wait(550);
 
-    // AI 经济允许时优先升级牌库
-    if (ai.deckLevel < 5) {
-      const nextCost = DUEL_UPGRADE_COSTS[ai.deckLevel - 1] || 99999;
-      if (ai.money >= nextCost) this.upgradeDeck(ai);
-    }
-
-    for (const card of [...ai.hand]) {
-      if (this.destroyed) return;
-      if ([CARD_TYPE.WAND, CARD_TYPE.CUP, CARD_TYPE.PENTACLE].includes(card.type)) {
-        this.useMinorFighter(ai, card);
-        this.emit("state");
-        await this.wait(360);
-      }
-    }
-
-    let theurgyCard = ai.hand.find(card => card.type === CARD_TYPE.THEURGY);
-    while (theurgyCard && ai.theurgyUses < ai.theurgyMax) {
-      this.useTheurgyFighter(ai, theurgyCard);
-      this.emit("state");
-      await this.wait(480);
-      if (this.destroyed) return;
-      theurgyCard = ai.hand.find(card => card.type === CARD_TYPE.THEURGY);
-    }
-
-    let healAttempts = 0;
-    while (ai.hp < ai.maxHp * 0.72 && healAttempts < 2) {
-      const plan = this.chooseComposePlan(ai, ELEMENT.HEAL);
-      if (!plan) break;
-      await this.executeComposePlan(ai, plan);
-      this.emit("state");
-      await this.wait(480);
-      healAttempts += 1;
-    }
-
-    for (let i = 0; i < 3; i++) {
-      if (this.destroyed) return;
-      const plan = this.chooseComposePlan(ai, null);
-      if (!plan) break;
-      await this.executeComposePlan(ai, plan);
-      this.emit("state");
-      await this.wait(520);
-    }
+    // 策略大脑：每场对战复用同一个实例（含持久性格与历史记忆）
+    if (!this.brain) this.brain = new DuelAIBrain(this);
+    await this.brain.playTurn(ai);
 
     this.returnComposeCards(ai);
     this.discardAttackCards(ai);
@@ -847,6 +823,44 @@ export class Duel {
     return Object.entries(f.affinities || {})
       .filter(([, affinity]) => affinity === AFFINITY.WEAK)
       .map(([element]) => element);
+  }
+
+  // 目标会减免/反弹/吸收/无效的属性（AI 决策时应主动规避）
+  avoidElements(f) {
+    return Object.entries(f.affinities || {})
+      .filter(([, affinity]) =>
+        affinity === AFFINITY.RESIST || affinity === AFFINITY.NULL ||
+        affinity === AFFINITY.REPEL || affinity === AFFINITY.DRAIN
+      )
+      .map(([element]) => element);
+  }
+
+  // 计算某战士下一级牌库升级费用（含命运阵营减免）；已满级返回 Infinity
+  getUpgradeCost(f) {
+    if (f.deckLevel >= 5) return Infinity;
+    let cost = DUEL_UPGRADE_COSTS[f.deckLevel - 1] || 99999;
+    if (f.arcanaBonus === "FORTUNE_ECONOMY") cost = Math.round(cost * 0.8);
+    return cost;
+  }
+
+  // 通用「花费资金抽牌」，适用于任意战士（玩家与 AI 共用经济体）
+  doDrawFor(f) {
+    if (f.hand.length >= f.handLimit) return false;
+    const cost = f.drawCost;
+    if (f.money < cost) return false;
+    f.money -= cost;
+    // 命运阵营：抽卡费用增长变慢
+    if (f.arcanaBonus === "FORTUNE_ECONOMY") {
+      f.drawCost = Math.round(f.drawCost * 1.5);
+    } else {
+      f.drawCost *= 2;
+    }
+    this.drawCard(f);
+    // 隐者阵营：花钱抽卡 30% 概率多抽一张
+    if (f.arcanaBonus === "HERMIT_LUCKY_DRAW" && Math.random() < 0.30 && f.hand.length < f.handLimit) {
+      this.drawCard(f);
+    }
+    return true;
   }
 
   cardOrientationOptions(card) {
@@ -880,76 +894,6 @@ export class Duel {
       result.range = skill.range;
     }
     return result;
-  }
-
-  chooseComposePlan(f, forcedElement) {
-    const target = this.opponentOf(f);
-    const weakElements = forcedElement ? [] : this.getWeakElements(target);
-    const candidates = f.hand.filter(card =>
-      card.type === CARD_TYPE.PERSONA || card.type === CARD_TYPE.SWORD
-    );
-    if (candidates.length < 2) return null;
-
-    let best = null;
-
-    for (const anchorCard of candidates) {
-      const anchorOptions = this.cardOrientationOptions(anchorCard).filter(option => {
-        if (forcedElement) return option.skill.element === forcedElement;
-        return option.skill.element !== ELEMENT.HEAL &&
-          option.skill.element !== ELEMENT.SUPPORT;
-      });
-
-      for (const anchorOption of anchorOptions) {
-        let reversedCount = candidates
-          .filter(card => card !== anchorCard)
-          .reduce((sum, card) => sum + (card.is_reversed ? 1 : 0), 0)
-          + (anchorOption.reversed ? 1 : 0);
-
-        const others = candidates
-          .filter(card => card !== anchorCard)
-          .map(card => ({ card, options: this.cardOrientationOptions(card) }))
-          .filter(item => item.options.length)
-          .sort((a, b) => {
-            const aPower = Math.max(...a.options.map(o => o.skill.power));
-            const bPower = Math.max(...b.options.map(o => o.skill.power));
-            return bPower - aPower;
-          });
-
-        const chosenFillers = [];
-        for (const item of others.slice(0, MAX_COMPOSE_SLOTS - 1)) {
-          const allowed = item.options.filter(option => {
-            const oldCount = item.card.is_reversed ? 1 : 0;
-            const newCount = option.reversed ? 1 : 0;
-            return reversedCount - oldCount + newCount <= f.maxReversed;
-          });
-          if (!allowed.length) continue;
-          allowed.sort((a, b) => {
-            const powerDiff = b.skill.power - a.skill.power;
-            if (powerDiff) return powerDiff;
-            return (b.skill.range === RANGE.ALL ? 1 : 0) - (a.skill.range === RANGE.ALL ? 1 : 0);
-          });
-          const option = allowed[0];
-          reversedCount -= item.card.is_reversed ? 1 : 0;
-          reversedCount += option.reversed ? 1 : 0;
-          chosenFillers.push({ card: item.card, option });
-        }
-
-        if (chosenFillers.length < 1) continue;
-        const planned = [...chosenFillers, { card: anchorCard, option: anchorOption }];
-        if (this.plannedReversedCount(planned) > f.maxReversed) continue;
-
-        const skill = this.plannedSkill(planned);
-        let score = skill.power * 10 + (skill.range === RANGE.ALL ? 5 : 0);
-        if (forcedElement && skill.element === forcedElement) score += 100000;
-        if (!forcedElement && weakElements.includes(skill.element)) score += 100000;
-
-        if (!best || score > best.score) {
-          best = { planned, skill, score };
-        }
-      }
-    }
-
-    return best;
   }
 
   plannedReversedCount(planned) {
@@ -988,6 +932,418 @@ export class Duel {
     f.hand.push(attackCard);
     this.log(`${f.name} 构筑：${names} → 攻击牌`, "info");
     this.useAttackFighter(f, attackCard);
+  }
+}
+
+// ============================================================
+// 策略型 AI 大脑：多维度感知 → 动态策略选择 → 候选评估 → 加权执行
+// 具备：性格随机（不可预测性）、历史对战记忆、进攻/防守/资源管理策略库、
+//       收益-风险量化评估模块
+// ============================================================
+
+// 多层策略库：每项策略定义一组决策权重（dmg=伤害 / weak=弱点 / eco=经济 /
+// safe=安全 / heal=治疗 / tempo=节奏），权重经评估模块合成单一效用分数
+const STRATEGIES = {
+  ASSAULT: { key: "ASSAULT", label: "强攻斩杀", w: { dmg: 1.0, weak: 0.6, eco: 0.1, safe: 0.0, heal: 0.0, tempo: 0.4 } },
+  EXPLOIT: { key: "EXPLOIT", label: "弱点压制", w: { dmg: 0.6, weak: 1.0, eco: 0.2, safe: 0.2, heal: 0.1, tempo: 0.3 } },
+  TEMPO:   { key: "TEMPO",   label: "节奏掌控", w: { dmg: 0.5, weak: 0.4, eco: 0.5, safe: 0.5, heal: 0.3, tempo: 0.5 } },
+  GROWTH:  { key: "GROWTH",  label: "蓄势发展", w: { dmg: 0.3, weak: 0.3, eco: 1.0, safe: 0.4, heal: 0.2, tempo: 0.2 } },
+  SURVIVE: { key: "SURVIVE", label: "防守保命", w: { dmg: 0.2, weak: 0.2, eco: 0.2, safe: 1.0, heal: 1.0, tempo: 0.1 } },
+};
+
+class DuelAIBrain {
+  constructor(duel) {
+    this.duel = duel;
+    // 每场对战开局随机性格，决定长期倾向，制造不可预测的对手风格
+    this.personality = {
+      aggression: 0.25 + Math.random() * 0.75, // 进攻倾向
+      greed:      0.25 + Math.random() * 0.75, // 经济/囤积倾向
+      caution:    0.25 + Math.random() * 0.75, // 风险规避
+      variance:   0.15 + Math.random() * 0.55, // 决策抖动幅度
+    };
+    // 历史对战记忆：用于威胁评估与动态策略修正
+    this.memory = {
+      turns: [],
+      dmgTaken: [],      // 近 12 回合承受伤害观测
+      oppWeaknessHits: 0,
+      aiWeaknessHits: 0,
+    };
+    this.lastAiHp = undefined;
+  }
+
+  // ---------- 感知：构建战场上下文 ----------
+  perceive(ai) {
+    const opp = this.duel.opponentOf(ai);
+    return {
+      ai, opp,
+      turn: this.duel.turn,
+      aiHpPct: ai.maxHp ? ai.hp / ai.maxHp : 1,
+      oppHpPct: opp.maxHp ? opp.hp / opp.maxHp : 1,
+      weakElements: this.duel.getWeakElements(opp),
+      avoidElements: this.duel.avoidElements(opp),
+      pendingIn: this.duel.pending.filter(e => e.target === ai),
+      environment: this.duel.environment,
+    };
+  }
+
+  // ---------- 确定性伤害预估（用期望暴击替代随机，供决策参考） ----------
+  estimateDamage(skill, source, target) {
+    if (!skill) return { damage: 0, type: "none", affinity: AFFINITY.NORMAL };
+    if (skill.element === ELEMENT.HEAL) {
+      const mult = POWER_MULTIPLIER[skill.power] ?? 1;
+      const amount = Math.round(source.attack * mult * (skill.range === RANGE.ALL ? 1.2 : 1));
+      return { damage: amount, type: "heal", affinity: AFFINITY.NORMAL };
+    }
+    if (skill.element === ELEMENT.SUPPORT) return { damage: 0, type: "support", affinity: AFFINITY.NORMAL };
+
+    const base = calcBaseDamage(skill, source);
+    const affinity = getAffinity(skill.element, target);
+    const cupScale = source.arcanaBonus === "CUP_DOUBLE" ? 1.5 : 1;
+    const cupMult = 1 + 0.4 * (source.cupStack || 0) * cupScale;
+    const kdMult = target.is_knocked_down ? 1.25 : 1;
+    const critExp = 1 + 0.5 * (source.critRate || 0);
+    const raw = base * cupMult * kdMult * critExp;
+
+    if (affinity === AFFINITY.NULL) return { damage: 0, type: "null", affinity };
+    if (affinity === AFFINITY.REPEL) return { damage: Math.round(raw), type: "repel", affinity };
+    if (affinity === AFFINITY.DRAIN) return { damage: Math.round(raw), type: "drain", affinity };
+    return { damage: Math.round(raw * AFFINITY_MULTIPLIER[affinity]), type: "damage", affinity };
+  }
+
+  // ---------- 威胁分析：量化对手下一回合终结我方的风险 ----------
+  threatAnalysis(ctx) {
+    let queued = 0;
+    for (const e of ctx.pendingIn) {
+      const est = this.estimateDamage(e.skill, e.source, ctx.ai);
+      if (est.type === "damage") queued += est.damage;
+    }
+    const projected = queued + this.oppBurstEstimate();
+    return {
+      queued,
+      projected,
+      dangerPct: ctx.ai.maxHp ? projected / ctx.ai.maxHp : 0,
+      lethalNext: projected >= ctx.ai.hp,
+    };
+  }
+
+  // 基于历史承受伤害估算对手单体回合爆发；无历史时用对称属性保守估计
+  oppBurstEstimate() {
+    const hist = this.memory.dmgTaken;
+    if (hist.length) {
+      const avg = hist.reduce((s, v) => s + v, 0) / hist.length;
+      return Math.max(Math.max(...hist), avg * 1.4);
+    }
+    return BASE_ATTACK * (POWER_MULTIPLIER[POWER.XH] || 3.2) * 1.4;
+  }
+
+  // ---------- 斩杀/威胁预判 ----------
+  canLethal(ctx) {
+    const ai = ctx.ai;
+    for (const card of ai.hand) {
+      if (card.type === CARD_TYPE.THEURGY) {
+        const est = this.estimateDamage(card.skill, ai, ctx.opp);
+        if (est.type === "damage" && est.damage >= ctx.opp.hp) return true;
+      }
+    }
+    return this.rankComposePlans(ai, ctx, {}).some(
+      p => p.est.type === "damage" && p.est.damage >= ctx.opp.hp
+    );
+  }
+
+  // ---------- 动态策略选择：根据战局实时调整 ----------
+  selectStrategy(ctx) {
+    const p = this.personality;
+    const threat = this.threatAnalysis(ctx);
+
+    // 不可预测性：偶尔以低概率偏离主策略
+    if (Math.random() < p.variance * 0.16) {
+      return this.weightedPick(Object.values(STRATEGIES), 5, 0.3);
+    }
+
+    if (this.canLethal(ctx) && p.aggression > 0.35) return STRATEGIES.ASSAULT;
+    if (threat.lethalNext && ctx.aiHpPct < 0.6) return STRATEGIES.SURVIVE;
+    if (ctx.aiHpPct < 0.32) return STRATEGIES.SURVIVE;
+    if (ctx.weakElements.length && p.aggression > 0.25 && ctx.oppHpPct < 0.55) return STRATEGIES.EXPLOIT;
+
+    const upCost = this.duel.getUpgradeCost(ctx.ai);
+    if (ctx.turn <= 2 || (upCost !== Infinity && ctx.ai.money >= upCost * 1.6 && p.greed > 0.4)) {
+      return STRATEGIES.GROWTH;
+    }
+    return STRATEGIES.TEMPO;
+  }
+
+  // ---------- 评估模块：对候选构筑方案做收益-风险量化 ----------
+  scoreComposePlan(skill, est, ctx, strategy, forcedElement) {
+    const w = (strategy || STRATEGIES.TEMPO).w;
+
+    if (forcedElement === ELEMENT.HEAL || est.type === "heal") {
+      const healNeed = est.damage / Math.max(1, ctx.ai.maxHp);
+      return healNeed * 60 * w.heal + (ctx.aiHpPct < 0.4 ? 30 : 0);
+    }
+    if (est.type === "support") return -50;
+
+    let s = 0;
+    const dmgRatio = est.damage / Math.max(1, ctx.opp.maxHp);
+    s += dmgRatio * 55 * w.dmg;
+    // 斩杀奖励（收益极值）
+    if (est.type === "damage" && est.damage >= ctx.opp.hp) s += 120;
+    // 弱点命中奖励
+    if (ctx.weakElements.includes(skill.element)) s += 45 * w.weak;
+    // 风险惩罚：反弹（自伤）/吸收（回敌）/无效（零收益）
+    if (est.type === "repel") s -= 90;
+    else if (est.type === "drain") s -= 70;
+    else if (est.type === "null") s -= 60;
+    else if (ctx.avoidElements.includes(skill.element)) s -= 18;
+    // 全体范围节奏价值 + 力度基础价值
+    if (skill.range === RANGE.ALL) s += 8 * w.tempo;
+    s += skill.power * 2.5 * w.dmg;
+    return s;
+  }
+
+  // ---------- 候选枚举：枚举手牌中所有可行的构筑组合并打分排序 ----------
+  rankComposePlans(ai, ctx, opts = {}) {
+    const { forcedElement = null, strategy = null } = opts;
+    const candidates = ai.hand.filter(c =>
+      c.type === CARD_TYPE.PERSONA || c.type === CARD_TYPE.SWORD
+    );
+    if (candidates.length < 2) return [];
+
+    const results = [];
+    for (const anchorCard of candidates) {
+      const anchorOptions = this.duel.cardOrientationOptions(anchorCard).filter(o => {
+        if (forcedElement) return o.skill.element === forcedElement;
+        return o.skill.element !== ELEMENT.HEAL && o.skill.element !== ELEMENT.SUPPORT;
+      });
+
+      for (const anchorOption of anchorOptions) {
+        let reversedCount = candidates
+          .filter(c => c !== anchorCard)
+          .reduce((sum, c) => sum + (c.is_reversed ? 1 : 0), 0)
+          + (anchorOption.reversed ? 1 : 0);
+
+        const others = candidates
+          .filter(c => c !== anchorCard)
+          .map(c => ({
+            card: c,
+            options: this.duel.cardOrientationOptions(c).filter(o => {
+              if (forcedElement) return o.skill.element === forcedElement;
+              return o.skill.element !== ELEMENT.HEAL && o.skill.element !== ELEMENT.SUPPORT;
+            }),
+          }))
+          .filter(item => item.options.length)
+          .sort((a, b) => {
+            const ap = Math.max(...a.options.map(o => o.skill.power));
+            const bp = Math.max(...b.options.map(o => o.skill.power));
+            return bp - ap;
+          });
+
+        const chosen = [];
+        for (const item of others.slice(0, MAX_COMPOSE_SLOTS - 1)) {
+          const allowed = item.options.filter(o => {
+            const oldC = item.card.is_reversed ? 1 : 0;
+            const newC = o.reversed ? 1 : 0;
+            return reversedCount - oldC + newC <= ai.maxReversed;
+          });
+          if (!allowed.length) continue;
+          allowed.sort((a, b) => {
+            const pd = b.skill.power - a.skill.power;
+            if (pd) return pd;
+            const ae = a.skill.element === forcedElement ? 1 : 0;
+            const be = b.skill.element === forcedElement ? 1 : 0;
+            if (be - ae) return be - ae;
+            return (b.skill.range === RANGE.ALL ? 1 : 0) - (a.skill.range === RANGE.ALL ? 1 : 0);
+          });
+          const option = allowed[0];
+          reversedCount -= item.card.is_reversed ? 1 : 0;
+          reversedCount += option.reversed ? 1 : 0;
+          chosen.push({ card: item.card, option });
+        }
+
+        if (chosen.length < 1) continue;
+        const planned = [...chosen, { card: anchorCard, option: anchorOption }];
+        if (this.duel.plannedReversedCount(planned) > ai.maxReversed) continue;
+
+        const skill = this.duel.plannedSkill(planned);
+        const est = this.estimateDamage(skill, ai, ctx.opp);
+        const score = this.scoreComposePlan(skill, est, ctx, strategy, forcedElement);
+        results.push({ planned, skill, est, score });
+      }
+    }
+    results.sort((a, b) => b.score - a.score);
+    return results;
+  }
+
+  // ---------- 加权采样：在 Top-N 候选中带随机性选择，兼顾最优与不可预测 ----------
+  weightedPick(items, topN = 2, extraNoise = 0) {
+    if (!items || !items.length) return null;
+    const pool = items.slice(0, Math.min(Math.max(1, topN), items.length));
+    const weights = pool.map((item, i) =>
+      Math.exp(-i * (1.0 + this.personality.variance)) + extraNoise * Math.random()
+    );
+    const total = weights.reduce((s, v) => s + v, 0);
+    let roll = Math.random() * total;
+    for (let i = 0; i < pool.length; i++) {
+      roll -= weights[i];
+      if (roll <= 0) return pool[i];
+    }
+    return pool[pool.length - 1];
+  }
+
+  trackDamageTaken(ai) {
+    if (this.lastAiHp === undefined) { this.lastAiHp = ai.hp; return; }
+    const taken = this.lastAiHp - ai.hp;
+    if (taken > 0) {
+      this.memory.dmgTaken.push(taken);
+      if (this.memory.dmgTaken.length > 12) this.memory.dmgTaken.shift();
+    }
+    this.lastAiHp = ai.hp;
+  }
+
+  recordTurn(ctx, strategy) {
+    this.memory.turns.push({
+      turn: ctx.turn, strat: strategy.key,
+      hp: Math.round(ctx.aiHpPct * 100), oppHp: Math.round(ctx.oppHpPct * 100),
+    });
+    if (this.memory.turns.length > 60) this.memory.turns.shift();
+  }
+
+  // ---------- 主入口：编排一整回合的决策与执行 ----------
+  async playTurn(ai) {
+    this.trackDamageTaken(ai);
+    const ctx = this.perceive(ai);
+    const strategy = this.selectStrategy(ctx);
+    this.recordTurn(ctx, strategy);
+    this.duel.log(`AI 思考：${strategy.label}`, "info");
+
+    await this.phaseGrowth(ctx, strategy);
+    await this.phaseResource(ctx, strategy);
+    await this.phaseTheurgy(ctx, strategy);
+    await this.phaseHeal(ctx, strategy);
+    await this.phaseAttack(ctx, strategy);
+  }
+
+  // 阶段 1：成长 —— 牌库升级（经济允许 + 策略倾向 + 保留储备）
+  async phaseGrowth(ctx, strategy) {
+    const ai = ctx.ai;
+    const cost = this.duel.getUpgradeCost(ai);
+    if (cost === Infinity) return;
+    const reserve = Math.round(ai.drawCost * (1.6 - this.personality.greed * 0.7));
+    const eager = strategy.key === "GROWTH";
+    if (ai.money >= cost && (eager || ai.money >= cost + reserve)) {
+      this.duel.upgradeDeck(ai);
+      this.duel.emit("state");
+      await this.duel.wait(360);
+    }
+  }
+
+  // 阶段 2：资源 —— 抽牌补充、星币增收、权杖补料
+  async phaseResource(ctx, strategy) {
+    const ai = ctx.ai;
+    const material = ai.hand.filter(c => c.type === CARD_TYPE.PERSONA || c.type === CARD_TYPE.SWORD).length;
+
+    if (material < 3 && ai.hand.length < ai.handLimit && ai.money >= ai.drawCost) {
+      this.duel.doDrawFor(ai);
+      this.duel.log(`${ai.name} 花费资金抽取一张牌`, "info");
+      this.duel.emit("state");
+      await this.duel.wait(300);
+    }
+
+    for (const card of [...ai.hand]) {
+      if (this.duel.destroyed) return;
+      if (card.type === CARD_TYPE.PENTACLE) {
+        this.duel.useMinorFighter(ai, card);
+        this.duel.emit("state");
+        await this.duel.wait(300);
+      }
+    }
+
+    const mat2 = ai.hand.filter(c => c.type === CARD_TYPE.PERSONA || c.type === CARD_TYPE.SWORD).length;
+    const wand = ai.hand.find(c => c.type === CARD_TYPE.WAND);
+    if (wand && (mat2 < 2 || (strategy.key === "GROWTH" && ai.hand.length < ai.handLimit))) {
+      this.duel.useMinorFighter(ai, wand);
+      this.duel.emit("state");
+      await this.duel.wait(300);
+    }
+  }
+
+  // 阶段 3：神通法 —— 按收益/风险阈值释放，治疗型仅在低血量时使用
+  async phaseTheurgy(ctx, strategy) {
+    const ai = ctx.ai;
+    let card = ai.hand.find(c => c.type === CARD_TYPE.THEURGY);
+    while (card && ai.theurgyUses < ai.theurgyMax) {
+      if (this.duel.destroyed) return;
+      const est = this.estimateDamage(card.skill, ai, ctx.opp);
+      let release = false;
+      if (est.type === "heal") {
+        release = ctx.aiHpPct < 0.45;
+      } else if (est.type === "damage") {
+        const lethality = est.damage >= ctx.opp.hp;
+        const weakHit = ctx.weakElements.includes(card.skill.element);
+        const aggressive = strategy.key === "ASSAULT" || strategy.key === "EXPLOIT";
+        release = lethality || weakHit || aggressive || ctx.oppHpPct < 0.35;
+      }
+      if (!release) break;
+      this.duel.useTheurgyFighter(ai, card);
+      this.duel.emit("state");
+      await this.duel.wait(420);
+      card = ai.hand.find(c => c.type === CARD_TYPE.THEURGY);
+    }
+  }
+
+  // 阶段 4：保命 —— 低血量时构筑治疗牌
+  async phaseHeal(ctx, strategy) {
+    const ai = ctx.ai;
+    const threshold = 0.4 + this.personality.caution * 0.25;
+    if (!(ctx.aiHpPct < threshold || strategy.key === "SURVIVE")) return;
+
+    const plans = this.rankComposePlans(ai, ctx, { forcedElement: ELEMENT.HEAL });
+    if (!plans.length) return;
+    const plan = plans[0];
+    const lost = ai.maxHp - ai.hp;
+    if (plan.est.damage >= Math.min(60, lost * 0.5)) {
+      await this.duel.executeComposePlan(ai, plan);
+      this.duel.emit("state");
+      await this.duel.wait(420);
+    }
+  }
+
+  // 阶段 5：进攻 —— 圣杯放大后，按预算构筑并释放攻击牌
+  async phaseAttack(ctx, strategy) {
+    const ai = ctx.ai;
+    if (strategy.key === "SURVIVE" && this.threatAnalysis(ctx).lethalNext && ctx.aiHpPct < 0.35) return;
+
+    // 圣杯：本回合准备进攻时放大最终伤害
+    if (strategy.w.dmg >= 0.3) {
+      const cup = ai.hand.find(c => c.type === CARD_TYPE.CUP);
+      const mat = ai.hand.filter(c => c.type === CARD_TYPE.PERSONA || c.type === CARD_TYPE.SWORD).length;
+      if (cup && mat >= 2) {
+        this.duel.useMinorFighter(ai, cup);
+        this.duel.emit("state");
+        await this.duel.wait(280);
+      }
+    }
+
+    const budget = this.attackBudget(ctx, strategy);
+    for (let i = 0; i < budget; i++) {
+      if (this.duel.destroyed) return;
+      const plans = this.rankComposePlans(ai, ctx, { strategy });
+      if (!plans.length) break;
+      const plan = this.weightedPick(plans, 2 + Math.floor(this.personality.variance * 3));
+      await this.duel.executeComposePlan(ai, plan);
+      this.duel.emit("state");
+      await this.duel.wait(460);
+    }
+  }
+
+  attackBudget(ctx, strategy) {
+    const ai = ctx.ai;
+    const material = ai.hand.filter(c => c.type === CARD_TYPE.PERSONA || c.type === CARD_TYPE.SWORD).length;
+    const maxByMaterial = Math.floor(material / 2);
+    let n;
+    if (strategy.key === "ASSAULT") n = Math.min(3, maxByMaterial);
+    else if (strategy.key === "EXPLOIT" || strategy.key === "TEMPO") n = Math.min(2, maxByMaterial);
+    else n = Math.min(1, maxByMaterial);
+    return Math.max(0, n);
   }
 }
 
