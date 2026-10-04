@@ -1441,6 +1441,37 @@ const DUEL_CSS = `
 #duel-screen .overlay-actions{display:flex;gap:14px}
 .duel-entry-card{display:flex;align-items:center;justify-content:space-between;gap:18px;background:#111a3a;border:1px solid #d4af37;border-radius:12px;padding:16px 20px;margin-top:12px}
 .duel-entry-name{font-size:18px;font-weight:800;color:#d4af37}.duel-entry-desc{font-size:13px;color:#aab6dc;margin-top:4px}.duel-enter-btn{min-width:140px}
+/* ============================================================
+   可读性增强：对战界面非标题文字适度放大（大标题保持原字号）
+   ============================================================ */
+#duel-screen .duel-hint{font-size:18px}
+#duel-screen .fp-name{font-size:25px}
+#duel-screen .fp-arcana{font-size:16px}
+#duel-screen .fp-tag{font-size:15px;padding:6px 10px}
+#duel-screen .hp-text{font-size:16px}
+#duel-screen .aff-badge{font-size:12px;padding:3px 7px}
+#duel-screen .duel-log{font-size:16px;line-height:1.5}
+#duel-screen .compose-title{font-size:17px}
+#duel-screen .duel-preview{font-size:16px}
+#duel-screen .cut-btn{font-size:18px;padding:13px 20px;min-height:50px}
+#duel-screen .hand-title{font-size:17px}
+#duel-screen .dc-name{font-size:15px}
+#duel-screen .dc-skill{font-size:13px;min-height:38px}
+#duel-screen .dc-type{font-size:12px}
+#duel-screen .dc-rank{font-size:15px}
+#duel-screen .round-banner p{font-size:25px}
+#duel-screen .overlay p{font-size:24px}
+.duel-entry-name{font-size:20px}
+.duel-entry-desc{font-size:15px}
+/* AI 对战选择界面：按钮与字号进一步放大，增加可读性 */
+#duel-screen .select-scroll{padding:28px 64px 36px}
+#duel-screen .rule-chip{font-size:16px;padding:8px 14px}
+#duel-screen .arcana-pick{min-height:140px;padding:18px}
+#duel-screen .ap-icon{font-size:42px}
+#duel-screen .ap-name{font-size:19px;margin-top:7px}
+#duel-screen .ap-idx{font-size:14px;min-height:18px}
+#duel-screen .select-actions{margin-top:28px;gap:16px}
+#duel-screen .select-actions .cut-btn{font-size:20px;padding:14px 34px;min-height:58px;border-radius:11px}
 `;
 
 (function injectDuelCSS() {
@@ -1575,7 +1606,7 @@ export class DuelUI {
           <span class="rule-chip">护盾：${Math.round(BASE_HP * SHIELD_HP_COST_PCT)} HP / 次，每局限购 2 次</span>
           <span class="rule-chip">伤害与倒地在回合结束统一结算</span>
         </div>
-        <div id="duel-select-info" style="font-size:20px;color:#d4af37;margin-bottom:14px;font-weight:800"></div>
+        <div id="duel-select-info" style="font-size:25px;color:#d4af37;margin-bottom:18px;font-weight:800"></div>
         <div class="arcana-grid" id="duel-arcana-grid"></div>
         <div class="select-actions">
           <button class="cut-btn" id="duel-clear">清空选择</button>
@@ -1841,7 +1872,7 @@ export class DuelUI {
     const upDisabled = !canAct || upCost <= 0 || f.money < upCost;
 
     bar.innerHTML = `
-      <span class="fp-tag" style="align-self:center;font-size:14px;padding:8px 12px">${stateText}</span>
+      <span class="fp-tag" style="align-self:center;font-size:16px;padding:8px 12px">${stateText}</span>
       <button class="cut-btn" id="d-draw" ${canAct ? "" : "disabled"}>抽牌 ¥${f.drawCost}</button>
       <button class="cut-btn" id="d-flip" ${canAct ? "" : "disabled"}>翻转选中牌</button>
       <button class="cut-btn confirm" id="d-confirm" ${canAct && f.composeSlots.length >= 2 ? "" : "disabled"}>合成攻击牌</button>

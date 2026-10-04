@@ -1343,3 +1343,115 @@ html, body {
   0%, 100% { transform: rotate(0deg); }
   50% { transform: rotate(90deg); }
 }
+
+/* ============================================================
+   可读性增强：全界面非标题文字适度放大约 15%
+   （页面/分区大标题保持原字号不变）
+   ============================================================ */
+/* 状态栏 */
+.stat-label { font-size: 15px; }
+.stat-value { font-size: 25px; }
+.theurgy-text { font-size: 15px; }
+/* 敌人区 */
+.enemy-top { font-size: 13px; }
+.enemy-name { font-size: 18px; }
+.enemy-hp-text { font-size: 14px; }
+.aff-badge { font-size: 12px; padding: 3px 6px; }
+.enemy-intent { font-size: 14px; }
+/* 构筑区 */
+.slot .slot-label { font-size: 14px; }
+.result-power { font-size: 16px; }
+.result-row { font-size: 15px; }
+.result-row.final .big { font-size: 30px; }
+.chain-bar { font-size: 14px; }
+/* 手牌 */
+.card-rank { font-size: 16px; }
+.card-name { font-size: 14px; }
+.card-skill { font-size: 13px; }
+.skill-line { font-size: 12px; }
+.card-footer { font-size: 13px; }
+.card-orient { font-size: 12px; }
+/* 操作栏 / 日志 */
+.hp-text { font-size: 18px; }
+.cut-btn { font-size: 18px; padding: 13px 26px; }
+.battle-log { font-size: 14px; }
+.env-badge { font-size: 13px; }
+/* 阵营标签 */
+.arcana-level { font-size: 15px; }
+.arcana-pool-count { font-size: 13px; }
+.arcana-actions .cut-btn { font-size: 14px; padding: 7px 10px; }
+.arcana-locked-tag,
+.arcana-max-tag,
+.arcana-selected-tag { font-size: 13px; }
+/* Hub 头部 / 标签页 */
+.hub-subtitle { font-size: 16px; }
+.hub-stat-label { font-size: 13px; }
+.hub-stat-value { font-size: 27px; }
+.hub-exp-text { font-size: 13px; }
+.hub-tab { font-size: 16px; padding: 11px 26px; }
+.hub-desc { font-size: 16px; }
+.hub-empty { font-size: 16px; }
+/* 关卡卡 */
+.stage-id { font-size: 20px; }
+.stage-cleared-tag { font-size: 14px; }
+.stage-locked-tag { font-size: 14px; }
+.stage-name { font-size: 20px; }
+.stage-info { font-size: 14px; }
+.stage-reward { font-size: 15px; }
+/* 图鉴 */
+.comp-name { font-size: 16px; }
+.comp-arcana { font-size: 13px; }
+.comp-skills { font-size: 13px; }
+.comp-status { font-size: 13px; }
+.comp-name-sm { font-size: 15px; }
+.comp-arcana-sm { font-size: 12px; }
+/* 合体 */
+.fusion-slot-label { font-size: 13px; }
+.fusion-result-card .comp-name { font-size: 18px; }
+.fusion-cost { font-size: 15px; }
+.comp-skills-mini { font-size: 13px; }
+.fusion-fail { font-size: 15px; }
+.fusion-message { font-size: 16px; }
+.fusion-chip { font-size: 15px; }
+.fusion-quick-item { font-size: 15px; }
+.card-rank-sm { font-size: 12px; }
+/* 属性强化 */
+.stat-upgrade-name { font-size: 17px; }
+.stat-upgrade-current { font-size: 23px; }
+.stat-upgrade-bonus { font-size: 14px; }
+.stat-upgrade-cost { font-size: 14px; }
+.stats-hint { font-size: 15px; }
+/* 阵营选择 */
+.arcana-name { font-size: 18px; }
+.arcana-bonus { font-size: 14px; min-height: 40px; }
+.arcana-card .arcana-selected-tag { font-size: 14px; }
+/* 商店 / Toast */
+.shop-name { font-size: 16px; }
+.shop-desc { font-size: 13px; min-height: 36px; }
+.shop-price { font-size: 18px; }
+.hub-toast { font-size: 18px; }
+#btn-hub-return { font-size: 15px; padding: 7px 18px; }
+/* 教程气泡正文（标题不放大） */
+.stage-tut-tag { font-size: 12px; }
+.tutorial-tip-body { font-size: 15px; }
+/* 玩家档案 */
+.profile-subtitle { font-size: 15px; }
+.profile-item-name { font-size: 18px; }
+.profile-item-empty { font-size: 15px; }
+.profile-del-btn { font-size: 13px; }
+.profile-input { font-size: 16px; }
+.profile-msg { font-size: 14px; }
+/* 相性 / 难度 / 神通法配置 */
+.aff-hint { font-size: 12px; }
+.player-aff-badge { font-size: 13px; }
+.difficulty-display { font-size: 18px; }
+.diff-btn { font-size: 16px; }
+.theurgy-name { font-size: 16px; }
+.theurgy-desc { font-size: 13px; }
+.theurgy-skill { font-size: 13px; }
+.theurgy-sel-tag { font-size: 12px; }
+.theurgy-config-status { font-size: 16px; }
+.theurgy-config-header .cut-btn { font-size: 15px; }
+/* 结算 / 竖屏提示正文（大标题不放大） */
+.overlay-content p { font-size: 22px; }
+.rotate-hint { font-size: 22px; }

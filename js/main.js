@@ -2,10 +2,10 @@
 // 游戏入口：玩家档案选择、初始化、Hub ↔ 战斗切换
 // ============================================================
 import { Game } from "./game.js?v=20";
-import { UI } from "./ui.js?v=21";
+import { UI } from "./ui.js?v=22";
 import { MetaState } from "./meta.js?v=19";
 import { Hub } from "./hub.js?v=20";
-import { startDuel } from "./duel.js?v=22";
+import { startDuel } from "./duel.js?v=23";
 import { loadStagesData } from "./data.js?v=20";
 
 // 等比缩放适配：min 等比完整显示，桌面与移动端一致

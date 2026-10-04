@@ -347,7 +347,7 @@ export class UI {
           <div class="enemy-hp-bar"><div class="enemy-hp-fill" style="width:${e.hp / e.maxHp * 100}%"></div></div>
           <span class="enemy-hp-text">${e.hp}/${e.maxHp}</span>
         </div>
-        <div class="affinity-row">${affs || '<span style="opacity:0.4;font-size:10px">未揭示</span>'}</div>
+        <div class="affinity-row">${affs || '<span style="opacity:0.4;font-size:12px">未揭示</span>'}</div>
         <div class="enemy-intent">${intentIcon} ${intentName}</div>
       `;
       card.onclick = () => {
