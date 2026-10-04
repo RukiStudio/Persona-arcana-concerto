@@ -374,6 +374,20 @@ export class Duel {
     this.emit("state");
   }
 
+  // 为指定战士购买护盾（AI 决策使用；规则与玩家一致）
+  buyShieldFor(f) {
+    if (f.shield) return false;
+    if (f.shieldCount >= SHIELD_MAX_PER_ROUND) return false;
+    const cost = Math.round(f.maxHp * SHIELD_HP_COST_PCT);
+    if (f.hp <= cost) return false;
+    f.hp -= cost;
+    f.shield = true;
+    f.shieldCount += 1;
+    f.shieldExpiresTurn = this.turn + 1;
+    this.log(`${f.name} 消耗 ${cost} HP 购买护盾：将免疫下一次伤害及附带效果`, "gold");
+    return true;
+  }
+
   // 牌堆升级：花费 ¥ 提升牌堆等级，手牌上限+1，并补入更高阶人格面具
   upgradeDeck(f) {
     const allowed = f.isAI ? this.state === "AI_ACTION" : this.state === "PLAYER_ACTION";
@@ -1290,9 +1304,25 @@ class DuelAIBrain {
     }
   }
 
-  // 阶段 4：保命 —— 低血量时构筑治疗牌
+  // 阶段 4：保命 —— 高威胁时优先买护盾（性价比最高的一次性减伤），低血量再构筑治疗牌
   async phaseHeal(ctx, strategy) {
     const ai = ctx.ai;
+
+    // 护盾：用 20% HP 免疫「下一次伤害及附带效果」
+    // 当对手预计爆发（含队列延迟伤害）超过 20% 血量时，护盾为纯收益
+    const threat = this.threatAnalysis(ctx);
+    if (threat.projected > ai.maxHp * SHIELD_HP_COST_PCT) {
+      const hpAfter = ai.maxHp > 0 ? (ai.hp - ai.maxHp * SHIELD_HP_COST_PCT) / ai.maxHp : 0;
+      const critical = threat.lethalNext || ctx.aiHpPct < 0.35;
+      // 高威胁（致命/低血）只要买得起就买；中等威胁需偏谨慎性格且不把自己压进斩杀线
+      if (critical || (this.personality.caution > 0.45 && hpAfter > 0.2)) {
+        if (this.duel.buyShieldFor(ai)) {
+          this.duel.emit("state");
+          await this.duel.wait(320);
+        }
+      }
+    }
+
     const threshold = 0.4 + this.personality.caution * 0.25;
     if (!(ctx.aiHpPct < threshold || strategy.key === "SURVIVE")) return;
 
