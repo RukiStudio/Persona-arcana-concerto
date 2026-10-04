@@ -49,6 +49,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Connection", "close")
+        # 入口文件与 sw.js 禁止启发式缓存，保证移动端能及时检测到版本更新
+        rel = os.path.relpath(full, ROOT).replace(os.sep, "/")
+        if ext in (".html", ".json", ".webmanifest") or rel == "sw.js":
+            self.send_header("Cache-Control", "no-cache")
         self.end_headers()
         self.wfile.write(body)
 

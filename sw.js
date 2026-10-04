@@ -2,7 +2,7 @@
 // Service Worker：离线缓存 + 可安装（PWA）
 // 缓存版本变更时，请手动递增 CACHE 名称以强制刷新缓存
 // ============================================================
-const CACHE = "persona-arcana-v10";
+const CACHE = "persona-arcana-v11";
 
 const PRECACHE = [
   "./",
@@ -61,16 +61,25 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // 静态资源：缓存优先，命中即用，未命中则回源并缓存
+  // 静态资源（JS/CSS/图片等）：stale-while-revalidate
+  // 命中缓存立即返回，同时后台回源更新，确保移动端下次进入即拿到最新阵营逻辑
   e.respondWith(
-    caches.match(e.request).then(
-      (r) =>
-        r ||
-        fetch(e.request).then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(e.request, copy));
+    caches.match(e.request).then((cached) => {
+      const fetched = fetch(e.request)
+        .then((res) => {
+          if (res && res.status === 200 && res.type === "basic") {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(e.request, copy));
+          }
           return res;
         })
-    )
+        .catch(() => cached);
+      return cached || fetched;
+    })
   );
+});
+
+// 允许页面主动通知立即接管（配合 main.js 的更新流程）
+self.addEventListener("message", (e) => {
+  if (e.data === "SKIP_WAITING") self.skipWaiting();
 });

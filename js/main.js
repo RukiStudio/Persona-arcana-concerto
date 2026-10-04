@@ -198,10 +198,43 @@ window.addEventListener("orientationchange", () => {
   tryLockLandscape();
 });
 
-// ---------- PWA Service Worker：离线缓存 + 可安装 ----------
+// ---------- PWA Service Worker：离线缓存 + 可安装 + 自动更新 ----------
 // 仅在 http/https 下注册（PWA 场景）；Electron 的 app:// 与本地 file:// 不注册
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.protocol === "http:")) {
+  // 新 SW 接管后自动刷新一次，确保移动端加载到最新阵营/战斗逻辑
+  // 仅在「更新」场景刷新（页面原本已被旧 SW 控制）；首次安装不刷新，避免无意义重载
+  const hadController = !!navigator.serviceWorker.controller;
+  let swRefreshing = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController || swRefreshing) return;
+    swRefreshing = true;
+    location.reload();
+  });
+
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch(e => console.warn("SW 注册失败", e));
+    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(reg => {
+      // 立即检查一次更新（移动端 PWA 从后台恢复时尤其重要）
+      reg.update().catch(() => {});
+      const activate = worker => worker && worker.state === "installed" && worker.postMessage("SKIP_WAITING");
+      activate(reg.waiting);
+      reg.addEventListener("updatefound", () => {
+        const worker = reg.installing;
+        if (!worker) return;
+        worker.addEventListener("statechange", () => {
+          if (worker.state === "installed") {
+            if (navigator.serviceWorker.controller) worker.postMessage("SKIP_WAITING");
+          }
+        });
+      });
+    }).catch(e => console.warn("SW 注册失败", e));
+
+    // 页面从后台切回前台时再次检查更新
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) {
+        navigator.serviceWorker.getRegistration()
+          .then(reg => reg && reg.update())
+          .catch(() => {});
+      }
+    });
   });
 }
